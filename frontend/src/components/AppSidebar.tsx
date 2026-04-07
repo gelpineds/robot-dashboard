@@ -1,119 +1,121 @@
+import { useState } from "react";
 import {
   LayoutDashboard,
-  Send,
-  MapPin,
-  Clock,
+  PackageSearch,
   Bot,
-  Settings,
+  PlusCircle,
   FileText,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
-  useSidebar,
-} from "@/components/ui/sidebar";
 
-const mainItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Request Delivery", url: "/request", icon: Send },
-  { title: "Track Delivery", url: "/track", icon: MapPin },
-  { title: "Delivery History", url: "/history", icon: Clock },
+const navItems = [
+  { icon: LayoutDashboard, label: "Dashboard",        to: "/",                end: true },
+  { icon: PackageSearch,   label: "Deliveries",       to: "/history" },
+  { icon: Bot,             label: "Robot Fleet",      to: "/robots" },
+  { icon: PlusCircle,      label: "Request Delivery", to: "/request" },
+  { icon: FileText,        label: "Documents",        to: "/documents" },
+  { icon: Settings,        label: "Settings",         to: "/settings" },
 ];
 
-const systemItems = [
-  { title: "Robot Fleet", url: "/robots", icon: Bot },
-  { title: "Documents", url: "/documents", icon: FileText },
-  { title: "Settings", url: "/settings", icon: Settings },
-];
+interface AppSidebarProps {
+  collapsed: boolean;
+  onToggle: () => void;
+}
 
-export function AppSidebar() {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
-  const location = useLocation();
-
-  const renderItems = (items: typeof mainItems) =>
-    items.map((item) => (
-      <SidebarMenuItem key={item.title}>
-        <SidebarMenuButton asChild>
-          <NavLink
-            to={item.url}
-            end={item.url === "/"}
-            className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-sidebar-accent"
-            activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-          >
-            <item.icon className="h-4 w-4 shrink-0" />
-            {!collapsed && <span className="text-sm">{item.title}</span>}
-          </NavLink>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    ));
-
+export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   return (
-    <Sidebar collapsible="icon">
-      <SidebarContent className="pt-6">
+    <aside
+      className="relative flex flex-col h-screen shrink-0 transition-all duration-300 ease-in-out"
+      style={{
+        width: collapsed ? 64 : 240,
+        background: "#800000",
+      }}
+    >
+      {/* Collapse toggle button */}
+      <button
+        onClick={onToggle}
+        className="absolute -right-3 top-[72px] z-50 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-colors hover:bg-[#FFD700]/90"
+        style={{ background: "#FFD700" }}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {collapsed ? (
+          <ChevronRight className="h-3.5 w-3.5 text-[#600000]" />
+        ) : (
+          <ChevronLeft className="h-3.5 w-3.5 text-[#600000]" />
+        )}
+      </button>
+
+      {/* Logo / Brand */}
+      <div
+        className={`flex items-center gap-3 px-4 py-5 border-b border-white/10 transition-all duration-300 ${
+          collapsed ? "justify-center px-0" : ""
+        }`}
+      >
+        <div
+          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-sm"
+          style={{ background: "#600000", color: "#FFD700" }}
+        >
+          PD
+        </div>
         {!collapsed && (
-          <div className="px-5 pb-4 mb-2 border-b border-sidebar-border">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-                <Bot className="h-4 w-4 text-sidebar-primary-foreground" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-sidebar-foreground tracking-tight leading-none">
-                  PUP DocBot
-                </h2>
-                <p className="text-[11px] text-sidebar-foreground/60 mt-0.5">
-                  Document Delivery System
-                </p>
-              </div>
-            </div>
+          <div className="overflow-hidden">
+            <p className="text-white font-semibold text-sm leading-tight tracking-wide truncate">
+              PUP Deliver
+            </p>
+            <p className="text-[11px] leading-tight truncate" style={{ color: "rgba(255,215,0,0.7)" }}>
+             Panel
+            </p>
           </div>
         )}
+      </div>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50 text-[10px] uppercase tracking-widest font-medium">
-            Main
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>{renderItems(mainItems)}</SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      {/* Navigation */}
+      <nav className={`flex-1 py-4 overflow-y-auto overflow-x-hidden ${collapsed ? "px-0" : "px-3"}`}>
+        <div className="flex flex-col gap-0.5">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              icon={item.icon}
+              label={item.label}
+              to={item.to}
+              collapsed={collapsed}
+              end={item.end}
+            />
+          ))}
+        </div>
+      </nav>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50 text-[10px] uppercase tracking-widest font-medium">
-            System
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>{renderItems(systemItems)}</SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-
-      <SidebarFooter className="border-t border-sidebar-border p-4">
+      {/* Admin profile footer */}
+      <div
+        className={`border-t border-white/10 p-3 flex items-center gap-3 transition-all duration-300 ${
+          collapsed ? "justify-center" : ""
+        }`}
+      >
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
+          style={{ background: "#600000", color: "#FFD700" }}
+        >
+          AD
+        </div>
         {!collapsed && (
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-medium text-sidebar-foreground">
-              JD
+          <>
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-[12.5px] font-medium leading-tight truncate">Admin</p>
+              <p className="text-white/50 text-[10px] truncate mt-0.5">System Admin</p>
             </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-sidebar-foreground truncate">
-                Juan Dela Cruz
-              </p>
-              <p className="text-[10px] text-sidebar-foreground/50 truncate">
-                Faculty · CCIS
-              </p>
-            </div>
-          </div>
+            <button
+              className="shrink-0 p-1 rounded-md hover:bg-white/10 transition-colors"
+              aria-label="Log out"
+            >
+              <LogOut className="h-4 w-4" style={{ color: "#FFD700" }} />
+            </button>
+          </>
         )}
-      </SidebarFooter>
-    </Sidebar>
+      </div>
+    </aside>
   );
 }
