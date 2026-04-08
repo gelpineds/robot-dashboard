@@ -132,19 +132,13 @@ export function DeliveryDetailsModal({ open, onClose, delivery }: DeliveryDetail
               </div>
             </div>
 
-            {/* Robot & Fee */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <Bot className="w-4 h-4" style={{ color: "#800000" }} />
-                  <p className="text-[10px] font-semibold text-gray-500 uppercase">Robot</p>
-                </div>
-                <p className="text-sm font-semibold text-[#1A1A1A]">{delivery.robot}</p>
+            {/* Robot */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+              <div className="flex items-center gap-2 mb-2">
+                <Bot className="w-4 h-4" style={{ color: "#800000" }} />
+                <p className="text-[10px] font-semibold text-gray-500 uppercase">Robot</p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                <p className="text-[10px] font-semibold text-gray-500 uppercase mb-2">Fee</p>
-                <p className="text-sm font-semibold text-[#1A1A1A]">₱{delivery.fee.toFixed(2)}</p>
-              </div>
+              <p className="text-sm font-semibold text-[#1A1A1A]">{delivery.robot}</p>
             </div>
 
             {/* Timestamp */}
