@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { HistoryTable, type HistoryRow, STATUS_STYLES } from "@/components/DeliveryTable";
@@ -85,7 +85,6 @@ export default function DeliveryHistory() {
   }
 
   const filtered = useMemo(() => {
-    setPage(1);
     return ALL_DELIVERIES.filter((d) => {
       const q = search.toLowerCase();
       const matchSearch = !q || d.id.toLowerCase().includes(q) || d.customer.toLowerCase().includes(q);
@@ -93,6 +92,11 @@ export default function DeliveryHistory() {
       const matchRobot  = robot  === "All Robots" || d.robot === robot;
       return matchSearch && matchStatus && matchRobot;
     });
+  }, [search, status, robot, dateFrom, dateTo, ALL_DELIVERIES]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
   }, [search, status, robot, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
