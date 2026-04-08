@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Bell, Search, Settings } from "lucide-react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -26,6 +26,7 @@ const routeTitles: Record<string, string> = {
 
 export function AppLayout({ children, title }: AppLayoutProps) {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const { user, getInitials } = useUser();
   const [collapsed, setCollapsed] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -116,12 +117,14 @@ export function AppLayout({ children, title }: AppLayoutProps) {
             </div>
 
             {/* Avatar */}
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ml-1"
+            <button
+              onClick={() => navigate("/settings")}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ml-1 hover:opacity-90 transition-all hover:shadow-lg hover:scale-105"
               style={{ background: "#800000" }}
+              title="Go to profile settings"
             >
               {getInitials()}
-            </div>
+            </button>
           </div>
         </header>
 

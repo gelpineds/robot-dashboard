@@ -104,13 +104,15 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
 
       {/* Admin profile footer */}
       <div
-        className={`border-t border-white/10 p-3 flex items-center gap-3 transition-all duration-300 ${
+        className={`border-t border-white/10 p-3 flex items-center gap-3 transition-all duration-300 cursor-pointer hover:bg-white/5 rounded-lg ${
           collapsed ? "justify-center" : ""
         }`}
+        onClick={() => navigate("/settings")}
+        title="Go to profile settings"
       >
         <div
           className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
-          style={{ background: "#600000", color: "#FFD700" }}
+          style={{ background: "#FFD700", color: "#800000" }}
         >
           {getInitials()}
         </div>
@@ -118,10 +120,13 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           <>
             <div className="flex-1 min-w-0">
               <p className="text-white text-[12.5px] font-medium leading-tight truncate">{user?.full_name || "User"}</p>
-              <p className="text-white/50 text-[10px] truncate mt-0.5">{user?.role || "User"}</p>
+              <p className="text-white/50 text-[10px] truncate mt-0.5">{user?.email || "user@pup.edu.ph"}</p>
             </div>
             <button
-              onClick={handleLogout}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLogout();
+              }}
               className="shrink-0 p-1 rounded-md hover:bg-white/10 transition-colors"
               aria-label="Log out"
               title="Log out"
