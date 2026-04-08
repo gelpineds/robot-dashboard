@@ -132,7 +132,6 @@ npm install
 ### Development
 ```bash
 npm run dev
-# Runs on http://localhost:5173
 ```
 
 ### Production Build
