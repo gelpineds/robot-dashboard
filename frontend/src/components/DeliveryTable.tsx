@@ -64,7 +64,6 @@ export interface HistoryRow {
   to: string;
   datetime: string;
   status: string;
-  fee: number;
 }
 
 interface HistoryTableProps {
@@ -91,7 +90,7 @@ export function HistoryTable({ data, onView }: HistoryTableProps) {
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr style={{ background: "#800000" }}>
-            {["Order ID", "Customer", "Robot", "Route", "Date & Time", "Status", "Fee", "Actions"].map((h) => (
+            {["Order ID", "Customer", "Robot", "Route", "Date & Time", "Status", "Actions"].map((h) => (
               <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-white tracking-wide whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -148,10 +147,6 @@ export function HistoryTable({ data, onView }: HistoryTableProps) {
                     <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
                     {row.status}
                   </span>
-                </td>
-                {/* Fee */}
-                <td className="px-4 py-3 text-[12px] font-semibold text-[#1A1A1A] whitespace-nowrap">
-                  ₱{row.fee.toFixed(2)}
                 </td>
                 {/* Actions */}
                 <td className="px-4 py-3">

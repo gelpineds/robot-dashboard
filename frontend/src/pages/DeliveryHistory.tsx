@@ -8,11 +8,11 @@ import { deliveriesAPI, robotsAPI } from "@/lib/api";
 
 // ─── CSV export helper ────────────────────────────────────────────────────────
 function exportCSV(rows: HistoryRow[]) {
-  const headers = ["Order ID", "Customer", "Robot", "From", "To", "Date & Time", "Status", "Fee"];
+  const headers = ["Order ID", "Customer", "Robot", "From", "To", "Date & Time", "Status"];
   const lines = [
     headers.join(","),
     ...rows.map((r) =>
-      [r.id, `"${r.customer}"`, `"${r.robot}"`, `"${r.from}"`, `"${r.to}"`, `"${r.datetime}"`, r.status, r.fee].join(",")
+      [r.id, `"${r.customer}"`, `"${r.robot}"`, `"${r.from}"`, `"${r.to}"`, `"${r.datetime}"`, r.status].join(",")
     ),
   ];
   const blob = new Blob([lines.join("\n")], { type: "text/csv" });
@@ -61,8 +61,7 @@ export default function DeliveryHistory() {
     from: d.pickup_location || 'Unknown',
     to: d.dropoff_location || 'Unknown',
     datetime: new Date(d.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-    status: d.status === 'pending_request' ? 'Pending' : d.status === 'in_transit' ? 'In Transit' : d.status === 'delivered' ? 'Delivered' : d.status,
-    fee: 0, // Placeholder - add if available from backend
+    status: d.status === 'pending_request' ? 'Pending' : d.status === 'in_transit' ? 'In Transit' : d.status === 'delivered' ? 'Delivered' : d.status, // Placeholder - add if available from backend
   }));
 
   if (isLoading) {
