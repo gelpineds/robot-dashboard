@@ -1,9 +1,19 @@
-Flask==3.0.3
-Flask-SQLAlchemy==3.1.1
-Flask-Migrate==4.0.7
-Flask-JWT-Extended==4.6.0
-Flask-Bcrypt==1.0.1
-Flask-Cors==4.0.1
-Flask-SocketIO==5.3.6
-python-dotenv==1.0.1
-marshmallow==3.21.2
+# Backend Tech Stack - Python Dependencies
+# PUP Deliver - Robot Delivery Management System
+
+# Core Web Framework
+Flask==3.0.3                      # Lightweight WSGI web framework for building REST APIs
+Flask-Cors==4.0.1                 # Handle Cross-Origin Resource Sharing for frontend requests
+Flask-SocketIO==5.3.6             # Real-time bidirectional communication (for live updates)
+python-dotenv==1.0.1              # Load environment variables from .env file
+
+# Database & ORM
+Flask-SQLAlchemy==3.1.1           # SQLAlchemy ORM integration with Flask
+Flask-Migrate==4.0.7              # Alembic integration for database migrations
+
+# Authentication & Security
+Flask-JWT-Extended==4.6.0         # JWT token management for user authentication
+Flask-Bcrypt==1.0.1               # Bcrypt password hashing for secure user storage
+
+# Data Validation & Serialization
+marshmallow==3.21.2               # Object serialization/deserialization and validation
