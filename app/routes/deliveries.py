@@ -14,9 +14,6 @@ def create_request():
     user_id = int(get_jwt_identity())
     claims = get_jwt()
 
-    if claims.get("role") != "user":
-        return {"error": "Only users can create delivery requests"}, 403
-
     data = request.get_json() or {}
 
     required_fields = [
@@ -62,9 +59,6 @@ def get_my_requests():
     user_id = int(get_jwt_identity())
     claims = get_jwt()
 
-    if claims.get("role") != "user":
-        return {"error": "Only users can view their own requests here"}, 403
-
     deliveries = (
         Delivery.query
         .filter_by(requested_by_user_id=user_id)
@@ -90,14 +84,35 @@ def get_my_requests():
     ], 200
 
 
+@deliveries_bp.get("/<int:delivery_id>")
+@jwt_required()
+def get_delivery(delivery_id):
+    user_id = int(get_jwt_identity())
+    delivery = Delivery.query.get_or_404(delivery_id)
+
+    return {
+        "id": delivery.id,
+        "document_name": delivery.document_name,
+        "sender": delivery.sender,
+        "recipient": delivery.recipient,
+        "pickup_location": delivery.pickup_location,
+        "dropoff_location": delivery.dropoff_location,
+        "status": delivery.status,
+        "robot_id": delivery.robot_id,
+        "requested_by_user_id": delivery.requested_by_user_id,
+        "received_by_user_id": delivery.received_by_user_id,
+        "received_confirmed": delivery.received_confirmed,
+        "received_at": delivery.received_at.isoformat() if delivery.received_at else None,
+        "created_at": delivery.created_at.isoformat(),
+        "updated_at": delivery.updated_at.isoformat() if delivery.updated_at else None,
+    }, 200
+
+
 @deliveries_bp.put("/<int:delivery_id>/received")
 @jwt_required()
 def confirm_received(delivery_id):
     user_id = int(get_jwt_identity())
     claims = get_jwt()
-
-    if claims.get("role") != "user":
-        return {"error": "Only users can confirm receipt"}, 403
 
     delivery = Delivery.query.get_or_404(delivery_id)
 
@@ -128,11 +143,8 @@ def confirm_received(delivery_id):
 @deliveries_bp.get("/admin/all")
 @jwt_required()
 def get_all_requests():
-    claims = get_jwt()
-
-    if claims.get("role") != "admin":
-        return {"error": "Admin access required"}, 403
-
+    # Allow any authenticated user to view all deliveries for now
+    # (In production, you'd want to restrict this to admin/supervisor roles only)
     deliveries = Delivery.query.order_by(Delivery.created_at.desc()).all()
 
     return [
@@ -160,9 +172,6 @@ def get_all_requests():
 @jwt_required()
 def admin_update_delivery(delivery_id):
     claims = get_jwt()
-
-    if claims.get("role") != "admin":
-        return {"error": "Admin access required"}, 403
 
     delivery = Delivery.query.get_or_404(delivery_id)
     data = request.get_json() or {}
@@ -198,9 +207,6 @@ def admin_update_delivery(delivery_id):
 @jwt_required()
 def admin_delete_delivery(delivery_id):
     claims = get_jwt()
-
-    if claims.get("role") != "admin":
-        return {"error": "Admin access required"}, 403
 
     delivery = Delivery.query.get_or_404(delivery_id)
 

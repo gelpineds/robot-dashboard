@@ -105,7 +105,11 @@ export function HistoryTable({ data, onView }: HistoryTableProps) {
                 {/* Order ID */}
                 <td className="px-4 py-3">
                   <button
-                    onClick={() => navigate("/track")}
+                    onClick={() => {
+                      // Extract numeric ID from formatted ID (e.g., "DEL-00001" -> "1")
+                      const numericId = row.id.replace(/\D/g, '');
+                      navigate(`/track/${numericId}`);
+                    }}
                     className="font-mono text-[11px] font-bold hover:underline underline-offset-2"
                     style={{ color: "#800000" }}
                   >
@@ -160,7 +164,11 @@ export function HistoryTable({ data, onView }: HistoryTableProps) {
                       <Eye className="h-3.5 w-3.5" style={{ color: "#800000" }} />
                     </button>
                     <button
-                      onClick={() => navigate("/track")}
+                      onClick={() => {
+                        // Extract numeric ID from formatted ID
+                        const numericId = row.id.replace(/\D/g, '');
+                        navigate(`/track/${numericId}`);
+                      }}
                       className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-yellow-50 transition-colors"
                       title="Track delivery"
                     >

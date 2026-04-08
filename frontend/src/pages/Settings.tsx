@@ -7,8 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { useUser } from "@/hooks/useUser";
 
 export default function SettingsPage() {
+  const { user } = useUser();
+
   return (
     <AppLayout title="Settings" subtitle="System configuration and preferences">
       <div className="max-w-2xl mx-auto space-y-6">
@@ -42,15 +45,15 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Full Name</Label>
-                <Input defaultValue="Juan Dela Cruz" />
+                <Input defaultValue={user?.full_name || "Loading..."} readOnly />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Department</Label>
-                <Input defaultValue="CCIS" />
+                <Label className="text-xs">Department/Room</Label>
+                <Input defaultValue={user?.room || user?.role || "N/A"} readOnly />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label className="text-xs">Email</Label>
-                <Input defaultValue="jdelacruz@pup.edu.ph" />
+                <Input defaultValue={user?.email || "Loading..."} readOnly />
               </div>
             </div>
 

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,8 +11,17 @@ import RobotFleet from "./pages/RobotFleet.tsx";
 import Documents from "./pages/Documents.tsx";
 import SettingsPage from "./pages/Settings.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import Login from "./pages/Login.tsx";
+import Register from "./pages/Register.tsx";
+import Notifications from "./pages/Notifications.tsx";
 
 const queryClient = new QueryClient();
+
+// Protected route wrapper - redirects to login if not authenticated
+const ProtectedRoute = ({ element }: { element: React.ReactNode }) => {
+  const token = localStorage.getItem("access_token");
+  return token ? element : <Navigate to="/login" replace />;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -21,13 +30,17 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/request" element={<RequestDelivery />} />
-          <Route path="/track" element={<TrackDelivery />} />
-          <Route path="/history" element={<DeliveryHistory />} />
-          <Route path="/robots" element={<RobotFleet />} />
-          <Route path="/documents" element={<Documents />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/" element={<ProtectedRoute element={<Index />} />} />
+          <Route path="/request" element={<ProtectedRoute element={<RequestDelivery />} />} />
+          <Route path="/track" element={<ProtectedRoute element={<TrackDelivery />} />} />
+          <Route path="/track/:deliveryId" element={<ProtectedRoute element={<TrackDelivery />} />} />
+          <Route path="/history" element={<ProtectedRoute element={<DeliveryHistory />} />} />
+          <Route path="/robots" element={<ProtectedRoute element={<RobotFleet />} />} />
+          <Route path="/documents" element={<ProtectedRoute element={<Documents />} />} />
+          <Route path="/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
+          <Route path="/notifications" element={<ProtectedRoute element={<Notifications />} />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -1,8 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { Bell, Search, Settings } from "lucide-react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { NotificationPanel } from "@/components/ui/NotificationPanel";
+import { SettingsPanel } from "@/components/ui/SettingsPanel";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useUser } from "@/hooks/useUser";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -10,19 +14,29 @@ interface AppLayoutProps {
 }
 
 const routeTitles: Record<string, string> = {
-  "/":          "Dashboard",
-  "/history":   "Deliveries",
-  "/robots":    "Robot Fleet",
-  "/request":   "Request Delivery",
-  "/documents": "Documents",
-  "/settings":  "Settings",
-  "/track":     "Track Delivery",
+  "/":               "Dashboard",
+  "/history":        "Deliveries",
+  "/robots":         "Robot Fleet",
+  "/request":        "Request Delivery",
+  "/documents":      "Documents",
+  "/settings":       "Settings",
+  "/track":          "Track Delivery",
+  "/notifications":  "Notifications",
 };
 
 export function AppLayout({ children, title }: AppLayoutProps) {
   const isMobile = useIsMobile();
+  const { user, getInitials } = useUser();
   const [collapsed, setCollapsed] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelFilter, setPanelFilter] = useState("All");
+  const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
   const location = useLocation();
+  const bellRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  const { notifications, markRead, markAllRead } = useNotifications();
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Auto-collapse on mobile
   useEffect(() => {
@@ -59,26 +73,54 @@ export function AppLayout({ children, title }: AppLayoutProps) {
 
           {/* Right: actions + avatar */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Bell */}
-            <button className="relative w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
-              <Bell className="h-[18px] w-[18px]" />
-              <span
-                className="absolute top-2 right-2 w-2 h-2 rounded-full border-2 border-white"
-                style={{ background: "#FFD700" }}
-              />
-            </button>
+            {/* Bell with notification panel */}
+            <div ref={bellRef} className="relative">
+              <button
+                onClick={() => setPanelOpen((o) => !o)}
+                className="relative w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+              >
+                <Bell className="h-[18px] w-[18px]" />
+                {unreadCount > 0 && (
+                  <span
+                    className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2 border-white"
+                    style={{ background: "#FFD700" }}
+                  />
+                )}
+              </button>
 
-            {/* Settings */}
-            <button className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
-              <Settings className="h-[18px] w-[18px]" />
-            </button>
+              <NotificationPanel
+                open={panelOpen}
+                onClose={() => setPanelOpen(false)}
+                notifications={notifications}
+                onMarkAllRead={markAllRead}
+                onMarkRead={markRead}
+                activeFilter={panelFilter}
+                onFilterChange={setPanelFilter}
+              />
+            </div>
+
+            {/* Settings with dropdown panel */}
+            <div ref={settingsRef} className="relative">
+              <button
+                onClick={() => setSettingsPanelOpen((o) => !o)}
+                className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+              >
+                <Settings className="h-[18px] w-[18px]" />
+              </button>
+
+              <SettingsPanel
+                open={settingsPanelOpen}
+                onClose={() => setSettingsPanelOpen(false)}
+                user={user}
+              />
+            </div>
 
             {/* Avatar */}
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ml-1"
               style={{ background: "#800000" }}
             >
-              AD
+              {getInitials()}
             </div>
           </div>
         </header>

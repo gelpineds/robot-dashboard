@@ -1,69 +1,12 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { RobotCard, type Robot, batteryColor } from "@/components/RobotCard";
 import {
   Plus, Search, Bot, Wifi, WifiOff,
-  LayoutGrid, List, X, Battery, MapPin, Clock,
+  LayoutGrid, List, X, Battery, MapPin, Clock, Loader,
 } from "lucide-react";
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
-const ROBOTS: Robot[] = [
-  {
-    id: "PUPBOT-001", name: "PUP-BOT Unit 1", status: "Online",
-    battery: 82, zone: "CCIS Building, 4F", lastActive: "Just now",
-    model: "DelivBot X2", currentDelivery: "DEL-20251 · Faculty Eval Forms",
-    maintenanceLog: [
-      { date: "2025-06-10", note: "Wheel calibration and sensor check" },
-      { date: "2025-05-22", note: "Battery cell replacement" },
-      { date: "2025-04-15", note: "Routine firmware update to v3.1.2" },
-    ],
-  },
-  {
-    id: "PUPBOT-002", name: "PUP-BOT Unit 2", status: "On Delivery",
-    battery: 67, zone: "Main Building Lobby", lastActive: "3 mins ago",
-    model: "DelivBot X2", currentDelivery: "DEL-20248 · Grade Sheets × 5",
-    maintenanceLog: [
-      { date: "2025-06-01", note: "Camera lens cleaning" },
-      { date: "2025-05-10", note: "Motor bearing lubrication" },
-    ],
-  },
-  {
-    id: "PUPBOT-003", name: "PUP-BOT Unit 3", status: "Online",
-    battery: 91, zone: "Nantes Building, 2F", lastActive: "1 min ago",
-    model: "DelivBot X3 Pro",
-    maintenanceLog: [
-      { date: "2025-06-12", note: "Full systems diagnostic — passed" },
-    ],
-  },
-  {
-    id: "PUPBOT-004", name: "PUP-BOT Unit 4", status: "Offline",
-    battery: 18, zone: "Charging Bay 2", lastActive: "2 hrs ago",
-    model: "DelivBot X2",
-    maintenanceLog: [
-      { date: "2025-06-08", note: "Battery critically low — charging" },
-      { date: "2025-05-30", note: "Navigation module recalibration" },
-    ],
-  },
-  {
-    id: "PUPBOT-005", name: "PUP-BOT Unit 5", status: "Offline",
-    battery: 5, zone: "Service Room", lastActive: "Yesterday",
-    model: "DelivBot X1",
-    maintenanceLog: [
-      { date: "2025-06-11", note: "Gyroscope malfunction — under repair" },
-      { date: "2025-05-18", note: "Chassis dent repair" },
-    ],
-  },
-  {
-    id: "PUPBOT-006", name: "PUP-BOT Unit 6", status: "On Delivery",
-    battery: 55, zone: "Research Office, 3F", lastActive: "5 mins ago",
-    model: "DelivBot X3 Pro", currentDelivery: "DEL-20249 · Research Proposals",
-    maintenanceLog: [
-      { date: "2025-06-09", note: "Routine firmware update to v3.2.0" },
-    ],
-  },
-];
-
-const ZONES = ["All Zones", "CCIS Building", "Main Building", "Nantes Building", "Research Office", "Charging Bay", "Service Room"];
+import { robotsAPI } from "@/lib/api";
 
 // ─── Detail Drawer ────────────────────────────────────────────────────────────
 function DetailDrawer({ robot, onClose }: { robot: Robot; onClose: () => void }) {
@@ -159,10 +102,11 @@ function DetailDrawer({ robot, onClose }: { robot: Robot; onClose: () => void })
 
 // ─── Table view ───────────────────────────────────────────────────────────────
 function RobotTable({ robots, onViewDetails }: { robots: Robot[]; onViewDetails: (r: Robot) => void }) {
-  const statusStyle: Record<Robot["status"], { bg: string; color: string }> = {
+  const statusStyle: Record<string, { bg: string; color: string }> = {
     Online:        { bg: "rgba(22,163,74,0.1)", color: "#15803d" },
-    Offline:       { bg: "#F3F4F6",             color: "#6B7280" },
-    "On Delivery": { bg: "#FFD700",             color: "#800000" },
+    Charging:      { bg: "rgba(255,215,0,0.15)", color: "#b8860b" },
+    Offline:       { bg: "#F3F4F6",              color: "#6B7280" },
+    "On Delivery": { bg: "#FFD700",              color: "#800000" },
   };
 
   return (
@@ -177,7 +121,7 @@ function RobotTable({ robots, onViewDetails }: { robots: Robot[]; onViewDetails:
         </thead>
         <tbody>
           {robots.map((robot, i) => {
-            const s = statusStyle[robot.status];
+            const s = statusStyle[robot.status] || statusStyle.Offline;
             const bc = batteryColor(robot.battery);
             return (
               <tr key={robot.id} style={{ background: i % 2 === 0 ? "#fff" : "#F9FAFB" }} className="hover:bg-red-50/20 transition-colors">
@@ -212,11 +156,35 @@ function RobotTable({ robots, onViewDetails }: { robots: Robot[]; onViewDetails:
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function RobotFleet() {
+  // Fetch robots from backend
+  const { data: backendRobots = [], isLoading, error } = useQuery({
+    queryKey: ['robots'],
+    queryFn: robotsAPI.getAll,
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
+  });
+
+  // All hooks MUST be called here, before any conditional returns
   const [viewMode,       setViewMode]       = useState<"grid" | "table">("grid");
   const [selectedRobot,  setSelectedRobot]  = useState<Robot | null>(null);
   const [search,         setSearch]         = useState("");
   const [statusFilter,   setStatusFilter]   = useState("All");
   const [zoneFilter,     setZoneFilter]     = useState("All Zones");
+
+  // Transform backend data to match component types
+  const ROBOTS: Robot[] = (backendRobots || []).map((r: any) => ({
+    id: `PUPBOT-${String(r.id).padStart(3, '0')}`,
+    name: r.name,
+    status: r.status === 'online' ? 'Online' : r.status === 'charging' ? 'Charging' : 'Offline',
+    battery: r.battery_level || 0,
+    zone: r.location || 'Unknown',
+    lastActive: 'Recently',
+    model: 'DelivBot X2',
+    currentDelivery: '',
+    maintenanceLog: [],
+  }));
+
+  // Build zones list from robots
+  const ZONES = ["All Zones", ...Array.from(new Set(ROBOTS.map((r) => r.zone)))];
 
   const totalOnline = ROBOTS.filter((r) => r.status !== "Offline").length;
   const totalOffline = ROBOTS.filter((r) => r.status === "Offline").length;
@@ -229,6 +197,27 @@ export default function RobotFleet() {
       return matchSearch && matchStatus && matchZone;
     });
   }, [search, statusFilter, zoneFilter]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <AppLayout title="Robot Fleet">
+        <div className="flex items-center justify-center h-64">
+          <Loader className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppLayout title="Robot Fleet">
+        <div className="text-center text-destructive py-8">
+          <p>Failed to load robots. Please try again.</p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Robot Fleet">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   PackageSearch,
@@ -11,6 +12,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useUser } from "@/hooks/useUser";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard",        to: "/",                end: true },
@@ -27,6 +29,17 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
+  const navigate = useNavigate();
+  const { user, getInitials } = useUser();
+
+  const handleLogout = () => {
+    // Clear auth token and user data
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user_data");
+    // Redirect to login
+    navigate("/login", { replace: true });
+  };
+
   return (
     <aside
       className="relative flex flex-col h-screen shrink-0 transition-all duration-300 ease-in-out"
@@ -99,17 +112,19 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
           style={{ background: "#600000", color: "#FFD700" }}
         >
-          AD
+          {getInitials()}
         </div>
         {!collapsed && (
           <>
             <div className="flex-1 min-w-0">
-              <p className="text-white text-[12.5px] font-medium leading-tight truncate">Admin</p>
-              <p className="text-white/50 text-[10px] truncate mt-0.5">System Admin</p>
+              <p className="text-white text-[12.5px] font-medium leading-tight truncate">{user?.full_name || "User"}</p>
+              <p className="text-white/50 text-[10px] truncate mt-0.5">{user?.role || "User"}</p>
             </div>
             <button
+              onClick={handleLogout}
               className="shrink-0 p-1 rounded-md hover:bg-white/10 transition-colors"
               aria-label="Log out"
+              title="Log out"
             >
               <LogOut className="h-4 w-4" style={{ color: "#FFD700" }} />
             </button>

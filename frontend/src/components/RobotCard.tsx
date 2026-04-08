@@ -3,7 +3,7 @@ import { Bot, MapPin, Clock, Battery } from "lucide-react";
 export interface Robot {
   id: string;
   name: string;
-  status: "Online" | "Offline" | "On Delivery";
+  status: string;
   battery: number;
   zone: string;
   lastActive: string;
@@ -17,10 +17,11 @@ interface RobotCardProps {
   onViewDetails: (robot: Robot) => void;
 }
 
-const statusStyle: Record<Robot["status"], { bg: string; color: string; dot: string }> = {
+const statusStyle: Record<string, { bg: string; color: string; dot: string }> = {
   Online:        { bg: "rgba(22,163,74,0.1)", color: "#15803d", dot: "#16a34a" },
-  Offline:       { bg: "#F3F4F6",             color: "#6B7280", dot: "#9CA3AF" },
-  "On Delivery": { bg: "#FFD700",             color: "#800000", dot: "#800000" },
+  Charging:      { bg: "rgba(255,215,0,0.15)",  color: "#b8860b", dot: "#FFD700" },
+  Offline:       { bg: "#F3F4F6",               color: "#6B7280", dot: "#9CA3AF" },
+  "On Delivery": { bg: "#FFD700",               color: "#800000", dot: "#800000" },
 };
 
 export function batteryColor(pct: number) {
@@ -30,7 +31,7 @@ export function batteryColor(pct: number) {
 }
 
 export function RobotCard({ robot, onViewDetails }: RobotCardProps) {
-  const s = statusStyle[robot.status];
+  const s = statusStyle[robot.status] || statusStyle.Offline;
   const bc = batteryColor(robot.battery);
 
   return (
