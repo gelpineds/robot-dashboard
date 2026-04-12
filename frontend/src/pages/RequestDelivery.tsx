@@ -11,17 +11,17 @@ import {
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const ROBOTS = [
-  { id: "PUPBOT-001", name: "PUP-BOT Unit 1", status: "Online"      },
+  { id: "PUPBOT-001", name: "PUP-BOT Unit 1", status: "Online" },
   { id: "PUPBOT-002", name: "PUP-BOT Unit 2", status: "On Delivery" },
-  { id: "PUPBOT-003", name: "PUP-BOT Unit 3", status: "Online"      },
-  { id: "PUPBOT-005", name: "PUP-BOT Unit 5", status: "Offline"     },
-  { id: "PUPBOT-006", name: "PUP-BOT Unit 6", status: "Online"      },
+  { id: "PUPBOT-003", name: "PUP-BOT Unit 3", status: "Online" },
+  { id: "PUPBOT-005", name: "PUP-BOT Unit 5", status: "Offline" },
+  { id: "PUPBOT-006", name: "PUP-BOT Unit 6", status: "Online" },
 ];
 
 const ROBOT_STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  Online:        { bg: "rgba(22,163,74,0.1)", color: "#15803d" },
-  "On Delivery": { bg: "#FFD700",             color: "#800000" },
-  Offline:       { bg: "#F3F4F6",             color: "#9CA3AF" },
+  Online: { bg: "rgba(22,163,74,0.1)", color: "#15803d" },
+  "On Delivery": { bg: "#FFD700", color: "#800000" },
+  Offline: { bg: "#F3F4F6", color: "#9CA3AF" },
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -50,6 +50,11 @@ const EMPTY: FormState = {
   priority: "Standard",
   robotId: "", scheduleDate: "", scheduleTime: "",
   instructions: "",
+};
+const roomsByFloor: Record<string, string[]> = {
+  "1st Floor": ["101", "102", "103", "104"],
+  "2nd Floor": ["201", "202", "203", "204"],
+  "3rd Floor": ["301", "302", "303", "304"],
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -103,26 +108,31 @@ function InputWithIcon({
           boxShadow: "none",
         }}
         onFocus={(e) => { e.target.style.borderColor = error ? "#dc2626" : "#800000"; e.target.style.boxShadow = `0 0 0 3px ${error ? "rgba(220,38,38,0.08)" : "rgba(128,0,0,0.08)"}`; }}
-        onBlur={(e)  => { e.target.style.borderColor = error ? "#fca5a5" : "#E5E7EB";  e.target.style.boxShadow = "none"; }}
+        onBlur={(e) => { e.target.style.borderColor = error ? "#fca5a5" : "#E5E7EB"; e.target.style.boxShadow = "none"; }}
       />
     </div>
   );
 }
 
 function SelectInput({
-  options, value, onChange, placeholder, error,
+  options, value, onChange, placeholder, error, disabled,
 }: {
-  options: string[]; value: string; onChange: (v: string) => void;
-  placeholder: string; error?: boolean;
+  options: string[];
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  error?: boolean;
+  disabled?: boolean; //
 }) {
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
       className="w-full px-3 py-2.5 text-sm bg-gray-50 border rounded-lg outline-none transition-all text-[#1A1A1A] appearance-none"
       style={{ borderColor: error ? "#fca5a5" : "#E5E7EB" }}
       onFocus={(e) => { e.target.style.borderColor = "#800000"; e.target.style.boxShadow = "0 0 0 3px rgba(128,0,0,0.08)"; }}
-      onBlur={(e)  => { e.target.style.borderColor = error ? "#fca5a5" : "#E5E7EB"; e.target.style.boxShadow = "none"; }}
+      onBlur={(e) => { e.target.style.borderColor = error ? "#fca5a5" : "#E5E7EB"; e.target.style.boxShadow = "none"; }}
     >
       <option value="" disabled>{placeholder}</option>
       {options.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -146,8 +156,10 @@ function SummaryRow({ icon: Icon, label, value }: { icon: React.ElementType; lab
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function RequestDelivery() {
   const navigate = useNavigate();
-  const [form,      setForm]      = useState<FormState>(EMPTY);
-  const [errors,    setErrors]    = useState<Errors>({});
+  const [form, setForm] = useState<FormState>(EMPTY);
+  const [pickupFloor, setPickupFloor] = useState("");
+  const [dropoffFloor, setDropoffFloor] = useState("");
+  const [errors, setErrors] = useState<Errors>({});
 
   const createMutation = useMutation({
     mutationFn: () => {
@@ -178,7 +190,18 @@ export default function RequestDelivery() {
 
   const set = (field: keyof FormState) => (value: string) => {
     setForm((f) => ({ ...f, [field]: value }));
-    setErrors((e) => ({ ...e, [field]: undefined }));
+
+    if (!value || value.toString().trim() === "") {
+      setErrors((e) => ({
+        ...e,
+        [field]: "This field is required",
+      }));
+    } else {
+      setErrors((e) => ({
+        ...e,
+        [field]: undefined,
+      }));
+    }
   };
 
   const requiredFields: (keyof FormState)[] = [
@@ -192,16 +215,18 @@ export default function RequestDelivery() {
   function validate(): boolean {
     const newErrors: Errors = {};
     const labels: Partial<Record<keyof FormState, string>> = {
-      pickupRoom:     "Pickup room",
-      pickupContact:  "Contact name",
-      pickupPhone:    "Contact number",
-      dropoffRoom:    "Drop-off room",
-      recipientName:  "Recipient name",
+      pickupRoom: "Pickup room",
+      pickupContact: "Contact name",
+      pickupPhone: "Contact number",
+      dropoffRoom: "Drop-off room",
+      recipientName: "Recipient name",
       recipientPhone: "Recipient number",
-      packageDesc:    "Package description",
+      packageDesc: "Package description",
     };
     requiredFields.forEach((f) => {
-      if (!form[f].toString().trim()) newErrors[f] = `${labels[f]} is required.`;
+      if (!form[f].toString().trim() && !errors[f]) {
+        newErrors[f] = `Please enter ${labels[f]}`;
+      }
     });
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -219,7 +244,7 @@ export default function RequestDelivery() {
   }
 
   const selectedRobot = ROBOTS.find((r) => r.id === form.robotId);
-  const estimatedFee  = form.priority === "Express" ? 75 : 45;
+  const estimatedFee = form.priority === "Express" ? 75 : 45;
 
   const inputClass = "w-full px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none placeholder:text-gray-400 text-[#1A1A1A]";
 
@@ -244,15 +269,33 @@ export default function RequestDelivery() {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <SectionTitle icon={MapPin} label="Pickup Details" />
                 <div className="space-y-4">
+                  <Field label="Pickup Floor" required>
+                    <SelectInput
+                      value={pickupFloor}
+                      onChange={(value) => {
+                        setPickupFloor(value);
+                        set("pickupRoom")("");
+                      }}
+                      placeholder="Select Floor"
+                      options={Object.keys(roomsByFloor)}
+                    />
+                  </Field>
                   <Field label="Pickup Room Number" error={errors.pickupRoom} required>
-                    <InputWithIcon icon={MapPin} placeholder="e.g. 202" value={form.pickupRoom} onChange={set("pickupRoom")} error={!!errors.pickupRoom} />
+                    <SelectInput
+                      value={form.pickupRoom}
+                      onChange={set("pickupRoom")}
+                      placeholder="Select Room"
+                      options={pickupFloor ? roomsByFloor[pickupFloor] : []}
+                      error={!!errors.pickupRoom}
+                      disabled={!pickupFloor}
+                    />
                   </Field>
                   <div className="grid grid-cols-2 gap-4">
                     <Field label="Contact Name" error={errors.pickupContact} required>
-                      <InputWithIcon icon={User}  placeholder="e.g. Juan Dela Cruz"  value={form.pickupContact} onChange={set("pickupContact")} error={!!errors.pickupContact} />
+                      <InputWithIcon icon={User} placeholder="e.g. Juan Dela Cruz" value={form.pickupContact} onChange={set("pickupContact")} error={!!errors.pickupContact} />
                     </Field>
                     <Field label="Contact Number" error={errors.pickupPhone} required>
-                      <InputWithIcon icon={Phone} placeholder="e.g. 0917-000-0000"   value={form.pickupPhone}   onChange={set("pickupPhone")}   error={!!errors.pickupPhone} />
+                      <InputWithIcon icon={Phone} placeholder="e.g. 0917-000-0000" value={form.pickupPhone} onChange={set("pickupPhone")} error={!!errors.pickupPhone} />
                     </Field>
                   </div>
                 </div>
@@ -262,15 +305,33 @@ export default function RequestDelivery() {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <SectionTitle icon={MapPin} label="Drop-off Details" />
                 <div className="space-y-4">
+                  <Field label="Drop-off Floor" required>
+                    <SelectInput
+                      value={dropoffFloor}
+                      onChange={(value) => {
+                        setDropoffFloor(value);
+                        set("dropoffRoom")("");
+                      }}
+                      placeholder="Select Floor"
+                      options={Object.keys(roomsByFloor)}
+                    />
+                  </Field>
                   <Field label="Drop-off Room Number" error={errors.dropoffRoom} required>
-                    <InputWithIcon icon={MapPin} placeholder="e.g. 206" value={form.dropoffRoom} onChange={set("dropoffRoom")} error={!!errors.dropoffRoom} />
+                    <SelectInput
+                      value={form.dropoffRoom}
+                      onChange={set("dropoffRoom")}
+                      placeholder="Select Room"
+                      options={dropoffFloor ? roomsByFloor[dropoffFloor] : []}
+                      error={!!errors.dropoffRoom}
+                      disabled={!dropoffFloor}
+                    />
                   </Field>
                   <div className="grid grid-cols-2 gap-4">
                     <Field label="Recipient Name" error={errors.recipientName} required>
-                      <InputWithIcon icon={User}  placeholder="e.g. Maria Santos"    value={form.recipientName}  onChange={set("recipientName")}  error={!!errors.recipientName} />
+                      <InputWithIcon icon={User} placeholder="e.g. Maria Santos" value={form.recipientName} onChange={set("recipientName")} error={!!errors.recipientName} />
                     </Field>
                     <Field label="Recipient Number" error={errors.recipientPhone} required>
-                      <InputWithIcon icon={Phone} placeholder="e.g. 0917-111-2222"   value={form.recipientPhone} onChange={set("recipientPhone")} error={!!errors.recipientPhone} />
+                      <InputWithIcon icon={Phone} placeholder="e.g. 0917-111-2222" value={form.recipientPhone} onChange={set("recipientPhone")} error={!!errors.recipientPhone} />
                     </Field>
                   </div>
                 </div>
@@ -280,7 +341,7 @@ export default function RequestDelivery() {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <SectionTitle icon={Package} label="Package Info" />
                 <div className="space-y-4">
-                  <Field label="Package Description" error={errors.packageDesc} required>
+                  <Field label="Package Description" error={errors.packageDesc}>
                     <div className="relative">
                       <FileText className="absolute left-3 top-3 h-4 w-4 pointer-events-none" style={{ color: errors.packageDesc ? "#dc2626" : "#800000" }} />
                       <textarea
@@ -292,7 +353,6 @@ export default function RequestDelivery() {
                         style={{ borderColor: errors.packageDesc ? "#fca5a5" : "#E5E7EB" }}
                       />
                     </div>
-                    {errors.packageDesc && <p className="text-[11px] text-red-500 font-medium">{errors.packageDesc}</p>}
                   </Field>
                 </div>
               </div>
@@ -326,11 +386,21 @@ export default function RequestDelivery() {
                       />
                     </Field>
                     <Field label="Scheduled Time">
-                      <input
-                        type="time"
+                      <SelectInput
                         value={form.scheduleTime}
-                        onChange={(e) => set("scheduleTime")(e.target.value)}
-                        className={inputClass}
+                        onChange={set("scheduleTime")}
+                        placeholder="Select Time"
+                        options={[
+                          "8:00 AM",
+                          "9:00 AM",
+                          "10:00 AM",
+                          "11:00 AM",
+                          "1:00 PM",
+                          "2:00 PM",
+                          "3:00 PM",
+                          "4:00 PM",
+                          "5:00 PM",
+                        ]}
                       />
                     </Field>
                   </div>
@@ -383,7 +453,7 @@ export default function RequestDelivery() {
             </div>
           </form>
         </div>
-      </div>
-    </AppLayout>
+      </div >
+    </AppLayout >
   );
 }
