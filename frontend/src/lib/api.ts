@@ -35,6 +35,13 @@ export const authAPI = {
     apiCall('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   login: (username: string, password: string) =>
     apiCall('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
+  getCurrentUser: () => apiCall('/auth/me'),
+};
+
+// ─── Users ────────────────────────────────────────────────────────────────────
+export const usersAPI = {
+  getAll: () => apiCall('/users'),
+  getById: (id: number) => apiCall(`/users/${id}`),
 };
 
 // ─── Robots ────────────────────────────────────────────────────────────────────

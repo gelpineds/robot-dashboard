@@ -15,7 +15,7 @@ export default function SettingsPage() {
   const { user, getInitials } = useUser();
 
   return (
-    <AppLayout title="Settings" subtitle="System configuration and preferences">
+    <AppLayout title="Settings">
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Profile Header Card */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -134,7 +134,7 @@ export default function SettingsPage() {
                       <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
                     </HoverCardTrigger>
                     <HoverCardContent className="w-64 text-xs">
-                      <p>Get immediate SMS notifications for high-priority deliveries</p>
+                      <p>Get SMS notifications for deliveries</p>
                     </HoverCardContent>
                   </HoverCard>
                 </div>

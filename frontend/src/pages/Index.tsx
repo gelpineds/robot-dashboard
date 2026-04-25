@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { StatCard } from "@/components/StatCard";
 import { DoughnutChart, LineChart, BarChart } from "@/components/ui/charts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/utilities";
-import { Bot, Package, MapPin, Users, Loader, Clock, Info } from "lucide-react";
+import { Bot, Package, MapPin, Users, Loader, Clock, Info, Send } from "lucide-react";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -135,6 +135,7 @@ const barOptions: ChartOptions<"bar"> = {
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   // Declare all hooks at the top (BEFORE any early returns)
+  const navigate = useNavigate();
   const [summaryPeriod, setSummaryPeriod] = useState<Period>("Monthly");
   const [revPeriod, setRevPeriod]         = useState<Period>("Monthly");
 
@@ -235,6 +236,26 @@ export default function Dashboard() {
           <StatCard title="Total Deliveries"  value={totalDeliveries} icon={Package} trend="+0% this month"  trendUp={false} />
           <StatCard title="Active Deliveries" value={activeDeliveries}    icon={MapPin} />
           <StatCard title="Completed"   value={completedCount}  icon={Users}   trend="+0 this week"     trendUp={false} />
+        </div>
+
+        {/* ── Section 1b: Quick Action Card ── */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-[#800000] to-[#600000] rounded-xl border border-[#800000]/20 p-6 shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-[13px] font-semibold text-[#FFD700] uppercase tracking-[0.06em] mb-2">
+                Quick Action
+              </p>
+              <h3 className="text-[22px] font-bold text-white mb-1">Create New Delivery</h3>
+              <p className="text-[13px] text-[#FFD700]/80">Start a new delivery request in seconds</p>
+            </div>
+            <button
+              onClick={() => navigate("/request")}
+              className="ml-4 flex items-center justify-center gap-2.5 px-6 py-3 bg-[#FFD700] text-[#800000] font-bold text-[13px] rounded-lg hover:bg-[#FFF8DC] active:scale-95 transition-all shadow-md whitespace-nowrap shrink-0"
+            >
+              <Send className="h-4 w-4" />
+              Create Delivery
+            </button>
+          </div>
         </div>
 
         {/* ── Section 2: Doughnut + Line ── */}

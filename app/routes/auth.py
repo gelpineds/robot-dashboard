@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app.extensions import db, bcrypt
 from app.models.user import User
 
@@ -101,3 +101,23 @@ def login():
 @auth_bp.get("/test")
 def auth_test():
     return {"message": "Auth route working"}, 200
+
+
+@auth_bp.get("/me")
+@jwt_required()
+def get_current_user():
+    """Get the currently logged-in user's information"""
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    
+    if not user:
+        return {"error": "User not found"}, 404
+    
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "full_name": user.full_name,
+        "role": user.role,
+        "room": user.room
+    }, 200

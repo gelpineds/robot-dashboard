@@ -34,8 +34,10 @@ def create_app():
     from app.routes.deliveries import deliveries_bp
     from app.routes.telemetry import telemetry_bp
     from app.routes.alerts import alerts_bp
+    from app.routes.users import users_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
+    app.register_blueprint(users_bp, url_prefix="/api/users")
     app.register_blueprint(robots_bp, url_prefix="/api/robots")
     app.register_blueprint(deliveries_bp, url_prefix="/api/deliveries")
     app.register_blueprint(telemetry_bp, url_prefix="/api/telemetry")

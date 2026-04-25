@@ -18,7 +18,7 @@ const navItems = [
   { icon: PackageSearch,   label: "Deliveries",       to: "/history" },
   { icon: Bot,             label: "Robot Fleet",      to: "/robots" },
   { icon: PlusCircle,      label: "Request Delivery", to: "/request" },
-  { icon: Inbox,           label: "Delivery Inbox",   to: "/inbox" },
+  { icon: Inbox,           label: "Delivery Inbox",   to: "/delivery-inbox" },
   { icon: FileText,        label: "Documents",        to: "/documents" },
   { icon: Settings,        label: "Settings",         to: "/settings" },
 ];
@@ -81,7 +81,7 @@ export function AppSidebar() {
     <aside
       ref={sidebarRef}
       style={{ width: isExpanded ? 240 : 64 }}
-      className="fixed left-0 top-0 h-screen z-40 flex flex-col bg-[#800000] transition-[width] duration-[250ms] ease-in-out overflow-hidden shrink-0"
+      className="fixed left-0 top-0 h-screen z-40 flex flex-col bg-[#800000] transition-[width] duration-300 ease-in-out overflow-hidden shrink-0"
     >
       {/* Logo / Brand — pointerEvents none on all child text */}
       <div

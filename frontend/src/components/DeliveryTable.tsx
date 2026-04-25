@@ -187,9 +187,8 @@ export interface OrderItem {
   price: number;
 }
 
-export function OrderItemsTable({ items, deliveryFee = 30 }: { items: OrderItem[]; deliveryFee?: number }) {
-  const subtotal = items.reduce((sum, it) => sum + it.qty * it.price, 0);
-  const total    = subtotal + deliveryFee;
+export function OrderItemsTable({ items }: { items: OrderItem[] }) {
+  const total = items.reduce((sum, it) => sum + it.qty * it.price, 0);
   const fmt = (n: number) => `₱${n.toFixed(2)}`;
 
   return (
@@ -213,14 +212,6 @@ export function OrderItemsTable({ items, deliveryFee = 30 }: { items: OrderItem[
           ))}
         </tbody>
         <tfoot>
-          <tr className="border-t border-gray-200" style={{ background: "#F9FAFB" }}>
-            <td colSpan={3} className="px-4 py-2 text-[11px] text-gray-500 text-right">Subtotal</td>
-            <td className="px-4 py-2 text-[12px] text-[#1A1A1A]">{fmt(subtotal)}</td>
-          </tr>
-          <tr style={{ background: "#F9FAFB" }}>
-            <td colSpan={3} className="px-4 py-2 text-[11px] text-gray-500 text-right">Delivery Fee</td>
-            <td className="px-4 py-2 text-[12px] text-[#1A1A1A]">{fmt(deliveryFee)}</td>
-          </tr>
           <tr className="border-t border-gray-200" style={{ background: "#fff" }}>
             <td colSpan={3} className="px-4 py-3 text-[12px] font-bold text-[#800000] text-right">Total</td>
             <td className="px-4 py-3 text-[13px] font-bold text-[#800000]">{fmt(total)}</td>
