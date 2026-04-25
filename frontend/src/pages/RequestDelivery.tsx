@@ -4,6 +4,8 @@ import { useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { toast } from "sonner";
 import { deliveriesAPI } from "@/lib/api";
+import { SectionTitle, Field, InputWithIcon, SelectInput, SummaryRow } from "@/components/ui/form-fields";
+import { HoverCard, HoverCardTrigger, HoverCardContent, Popover, PopoverTrigger, PopoverContent } from "@/components/ui/utilities";
 import {
   MapPin, User, Phone, Package, Send, X, Loader,
   Clock, Bot, FileText, Zap,
@@ -51,97 +53,6 @@ const EMPTY: FormState = {
   robotId: "", scheduleDate: "", scheduleTime: "",
   instructions: "",
 };
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-function SectionTitle({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
-  return (
-    <div className="flex items-center gap-2 pb-3 border-b border-gray-100 mb-4">
-      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "#800000" }}>
-        <Icon className="h-3.5 w-3.5 text-white" />
-      </div>
-      <span className="text-[13px] font-semibold text-[#1A1A1A]">{label}</span>
-    </div>
-  );
-}
-
-function Field({
-  label, error, required, children,
-}: {
-  label: string; error?: string; required?: boolean; children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-[11.5px] font-semibold text-gray-600 uppercase tracking-wide">
-        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      {children}
-      {error && <p className="text-[11px] text-red-500 font-medium">{error}</p>}
-    </div>
-  );
-}
-
-function InputWithIcon({
-  icon: Icon, placeholder, value, onChange, type = "text", error,
-}: {
-  icon: React.ElementType; placeholder: string; value: string;
-  onChange: (v: string) => void; type?: string; error?: boolean;
-}) {
-  return (
-    <div className="relative">
-      <Icon
-        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none"
-        style={{ color: error ? "#dc2626" : "#800000" }}
-      />
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full pl-9 pr-4 py-2.5 text-sm bg-gray-50 border rounded-lg outline-none transition-all placeholder:text-gray-400 text-[#1A1A1A]"
-        style={{
-          borderColor: error ? "#fca5a5" : "#E5E7EB",
-          boxShadow: "none",
-        }}
-        onFocus={(e) => { e.target.style.borderColor = error ? "#dc2626" : "#800000"; e.target.style.boxShadow = `0 0 0 3px ${error ? "rgba(220,38,38,0.08)" : "rgba(128,0,0,0.08)"}`; }}
-        onBlur={(e)  => { e.target.style.borderColor = error ? "#fca5a5" : "#E5E7EB";  e.target.style.boxShadow = "none"; }}
-      />
-    </div>
-  );
-}
-
-function SelectInput({
-  options, value, onChange, placeholder, error,
-}: {
-  options: string[]; value: string; onChange: (v: string) => void;
-  placeholder: string; error?: boolean;
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2.5 text-sm bg-gray-50 border rounded-lg outline-none transition-all text-[#1A1A1A] appearance-none"
-      style={{ borderColor: error ? "#fca5a5" : "#E5E7EB" }}
-      onFocus={(e) => { e.target.style.borderColor = "#800000"; e.target.style.boxShadow = "0 0 0 3px rgba(128,0,0,0.08)"; }}
-      onBlur={(e)  => { e.target.style.borderColor = error ? "#fca5a5" : "#E5E7EB"; e.target.style.boxShadow = "none"; }}
-    >
-      <option value="" disabled>{placeholder}</option>
-      {options.map((o) => <option key={o} value={o}>{o}</option>)}
-    </select>
-  );
-}
-
-// ─── Summary row ──────────────────────────────────────────────────────────────
-function SummaryRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-3 py-2.5 border-b border-gray-100 last:border-0">
-      <Icon className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "#800000" }} />
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">{label}</p>
-        <p className="text-[12.5px] font-medium text-[#1A1A1A] mt-0.5 truncate">{value || "—"}</p>
-      </div>
-    </div>
-  );
-}
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function RequestDelivery() {

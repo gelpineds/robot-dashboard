@@ -1,14 +1,15 @@
 import { AppLayout } from "@/components/AppLayout";
-import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Card } from "@/components/ui/layout/card";
+import { Label } from "@/components/ui/inputs/label";
+import { Input } from "@/components/ui/inputs/input";
+import { Switch } from "@/components/ui/inputs/switch";
+import { Button } from "@/components/ui/buttons/button";
+import { Separator } from "@/components/ui/layout/separator";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/utilities";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useUser } from "@/hooks/useUser";
-import { User, Mail, Badge, Briefcase } from "lucide-react";
+import { User, Mail, Badge, Briefcase, Info } from "lucide-react";
 
 export default function SettingsPage() {
   const { user, getInitials } = useUser();
@@ -112,15 +113,45 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-sm">Email notifications</Label>
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm">Email notifications</Label>
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-64 text-xs">
+                      <p>Receive email updates about your delivery requests and robot fleet status</p>
+                    </HoverCardContent>
+                  </HoverCard>
+                </div>
                 <Switch defaultChecked />
               </div>
               <div className="flex items-center justify-between">
-                <Label className="text-sm">SMS alerts for urgent deliveries</Label>
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm">SMS alerts for urgent deliveries</Label>
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-64 text-xs">
+                      <p>Get immediate SMS notifications for high-priority deliveries</p>
+                    </HoverCardContent>
+                  </HoverCard>
+                </div>
                 <Switch />
               </div>
               <div className="flex items-center justify-between">
-                <Label className="text-sm">Browser push notifications</Label>
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm">Browser push notifications</Label>
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-64 text-xs">
+                      <p>Real-time notifications in your browser when deliveries are updated</p>
+                    </HoverCardContent>
+                  </HoverCard>
+                </div>
                 <Switch defaultChecked />
               </div>
             </div>

@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { StatCard } from "@/components/StatCard";
-import { Bot, Package, MapPin, Users, Loader, Clock } from "lucide-react";
+import { DoughnutChart, LineChart, BarChart } from "@/components/ui/charts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/utilities";
+import { Bot, Package, MapPin, Users, Loader, Clock, Info } from "lucide-react";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -15,7 +17,7 @@ import {
   PointElement,
   LineElement,
   Filler,
-  type ChartOptions,
+  ChartOptions,
 } from "chart.js";
 import { Doughnut, Line, Bar } from "react-chartjs-2";
 import { robotsAPI, deliveriesAPI } from "@/lib/api";

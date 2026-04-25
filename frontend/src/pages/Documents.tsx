@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { FileText, Clock, User, Loader } from "lucide-react";
+import { Card } from "@/components/ui/layout/card";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/utilities";
+import { FileText, Clock, User, Loader, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { deliveriesAPI } from "@/lib/api";
 
@@ -65,9 +65,16 @@ export default function Documents() {
                     <FileText className="h-4 w-4 text-primary shrink-0" />
                     <h3 className="text-sm font-semibold text-foreground leading-tight">{doc.name}</h3>
                   </div>
-                  <Badge variant="outline" className={`text-[10px] shrink-0 ${typeColor[doc.type] || ""}`}>
-                    {doc.type}
-                  </Badge>
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <div className={`text-[10px] shrink-0 px-2 py-1 rounded border cursor-help ${typeColor[doc.type] || ""}`}>
+                        {doc.type}
+                      </div>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-64 text-xs">
+                      <p>Document Type: {doc.type}</p>
+                    </HoverCardContent>
+                  </HoverCard>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span>{doc.pages} page{doc.pages > 1 ? "s" : ""}</span>

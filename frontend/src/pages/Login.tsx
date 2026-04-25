@@ -1,8 +1,9 @@
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Mail, Lock, LogIn } from "lucide-react";
+import { Card } from "@/components/ui/layout/card";
+import { Input } from "@/components/ui/inputs/input";
+import { Label } from "@/components/ui/inputs/label";
+import { Button } from "@/components/ui/buttons/button";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/utilities";
+import { Mail, Lock, LogIn, Info } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -96,6 +97,14 @@ export default function Login() {
                 <div className="flex items-center gap-2 mb-1.5">
                   <Mail className="h-4 w-4 text-primary/70" />
                   Username
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-64 text-xs">
+                      <p>Enter the username you registered with</p>
+                    </HoverCardContent>
+                  </HoverCard>
                 </div>
               </Label>
               <Input
@@ -120,6 +129,14 @@ export default function Login() {
                 <div className="flex items-center gap-2 mb-1.5">
                   <Lock className="h-4 w-4 text-primary/70" />
                   Password
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-64 text-xs">
+                      <p>Your password should be kept confidential and secure</p>
+                    </HoverCardContent>
+                  </HoverCard>
                 </div>
               </Label>
               <Input

@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { HistoryTable, type HistoryRow, STATUS_STYLES } from "@/components/DeliveryTable";
 import { DeliveryDetailsModal } from "@/components/DeliveryDetailsModal";
-import { Download, Search, Bot, ChevronLeft, ChevronRight, Loader } from "lucide-react";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/utilities";
+import { Download, Search, Bot, ChevronLeft, ChevronRight, Loader, Info } from "lucide-react";
 import { deliveriesAPI, robotsAPI } from "@/lib/api";
 
 // ─── CSV export helper ────────────────────────────────────────────────────────
@@ -136,13 +137,20 @@ export default function DeliveryHistory() {
               />
             </div>
             {/* Robot dropdown */}
-            <select
-              value={robot}
-              onChange={(e) => setRobot(e.target.value)}
-              className="px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#800000] text-gray-600 min-w-[160px]"
-            >
-              {ROBOTS.map((r) => <option key={r}>{r}</option>)}
-            </select>
+            <HoverCard>
+              <HoverCardTrigger asChild>
+                <select
+                  value={robot}
+                  onChange={(e) => setRobot(e.target.value)}
+                  className="px-3 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#800000] text-gray-600 min-w-[160px] cursor-help"
+                >
+                  {ROBOTS.map((r) => <option key={r}>{r}</option>)}
+                </select>
+              </HoverCardTrigger>
+              <HoverCardContent className="w-72 text-xs">
+                <p>Filter deliveries by the robot that handled them. Select "All Robots" to see all deliveries.</p>
+              </HoverCardContent>
+            </HoverCard>
             {/* Date range */}
             <div className="flex items-center gap-2">
               <input
