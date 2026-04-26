@@ -42,6 +42,7 @@ export const authAPI = {
 export const usersAPI = {
   getAll: () => apiCall('/users'),
   getById: (id: number) => apiCall(`/users/${id}`),
+  search: (query: string) => apiCall(`/users/search?q=${encodeURIComponent(query)}`),
 };
 
 // ─── Robots ────────────────────────────────────────────────────────────────────

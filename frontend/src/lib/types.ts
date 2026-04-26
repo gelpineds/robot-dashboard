@@ -1,11 +1,15 @@
+// ---------------------------------------------------------------------------
+// Delivery status — robot is dispatched IMMEDIATELY when User1 submits.
+// There is NO pending_approval step. User2's only action is confirming
+// receipt after the robot has physically arrived.
+// ---------------------------------------------------------------------------
+
 export type DeliveryStatus =
-  | 'pending_approval'   // waiting for User2 to accept
-  | 'rejected'           // User2 declined
-  | 'robot_assigned'     // accepted, robot on its way to pickup
-  | 'in_transit'         // robot picked up, heading to User2
-  | 'arrived'            // robot at User2 door, waiting for receipt confirmation
-  | 'completed'          // User2 confirmed receipt
-  | 'cancelled'          // expired or manually cancelled
+  | 'robot_assigned'  // robot immediately dispatched after User1 submits (starting status)
+  | 'in_transit'      // robot picked up package, heading to User2
+  | 'arrived'         // robot physically at User2's room — awaiting receipt confirmation
+  | 'completed'       // User2 confirmed receipt in the app
+  | 'cancelled'       // cancelled by User1 before robot picks up
 
 export type DeliveryPriority = 'standard' | 'express'
 
@@ -14,38 +18,38 @@ export interface UserProfile {
   name: string
   room: string
   building: string
-  initials: string       // e.g. "JD"
-  avatarColor: string    // hex color for avatar bg
+  initials: string      // e.g. "JD"
+  avatarColor: string   // hex, used as avatar bg
 }
 
 export interface DeliveryItem {
   name: string
   qty: number
-  weight: number         // kg
-}
-
-export interface Delivery {
-  id: string                    // e.g. "DEL-20251"
-  sender: UserProfile
-  recipient: UserProfile
-  item: DeliveryItem
-  senderNote: string
-  priority: DeliveryPriority
-  fee: number                   // in PHP
-  status: DeliveryStatus
-  robotId: string               // e.g. "RBT-003"
-  robotName: string             // e.g. "PUP-BOT Unit 3"
-  createdAt: string             // ISO string
-  acceptedAt?: string
-  pickedUpAt?: string
-  arrivedAt?: string
-  completedAt?: string
-  expiresAt: string             // ISO string — 5 mins after createdAt
-  timeline: TimelineEvent[]
+  weight: number        // kg
 }
 
 export interface TimelineEvent {
   status: DeliveryStatus
   label: string
-  timestamp: string             // ISO string
+  timestamp: string     // ISO string
+}
+
+export interface Delivery {
+  id: string            // e.g. "DEL-20251"
+  sender: UserProfile   // User1
+  recipient: UserProfile// User2
+  item: DeliveryItem
+  senderNote: string
+  priority: DeliveryPriority
+  fee: number           // PHP
+  status: DeliveryStatus
+  robotId: string       // e.g. "RBT-001"
+  robotName: string     // e.g. "PUP-BOT Unit 1"
+  createdAt: string     // when User1 submitted — robot dispatches at this moment
+  pickedUpAt?: string
+  arrivedAt?: string    // when robot reached User2's room
+  completedAt?: string  // when User2 tapped "Confirm Receipt"
+  timeline: TimelineEvent[]
+  estimatedArrival: string  // e.g. "8 mins"
+  distance: string          // e.g. "320 m"
 }
