@@ -40,16 +40,28 @@ export default function DeliveryHistory() {
 
   // Fetch deliveries and robots from backend
   const { data: backendDeliveries = [], isLoading, error } = useQuery({
-    queryKey: ['deliveries-all'],
-    queryFn: deliveriesAPI.getAllDeliveries,
+    queryKey: ['deliveries-my-requests'],
+    queryFn: deliveriesAPI.getMyRequests,
     refetchInterval: 5000, // Refetch every 5 seconds
+    retry: 3,
   });
 
   const { data: backendRobots = [] } = useQuery({
     queryKey: ['robots'],
     queryFn: robotsAPI.getAll,
     refetchInterval: 5000,
+    retry: 3,
   });
+
+  // Debug logging
+  useEffect(() => {
+    console.log('DeliveryHistory Debug:', {
+      backendDeliveries,
+      isLoading,
+      error: error?.message,
+      count: backendDeliveries?.length || 0
+    });
+  }, [backendDeliveries, isLoading, error]);
 
   // Build robot list
   const ROBOTS = ["All Robots", ...backendRobots.map((r: any) => r.name)];
@@ -58,33 +70,14 @@ export default function DeliveryHistory() {
   const ALL_DELIVERIES: HistoryRow[] = (backendDeliveries || []).map((d: any) => ({
     id: `DEL-${String(d.id).padStart(5, '0')}`,
     customer: d.sender || 'Unknown', 
-    robot: `PUP-BOT Unit ${d.robot_id || ''}` || 'Unassigned',
+    robot: d.robot_id ? `PUP-BOT Unit ${d.robot_id}` : 'Unassigned',
     from: d.pickup_location || 'Unknown',
     to: d.dropoff_location || 'Unknown',
     datetime: new Date(d.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-    status: d.status === 'pending_request' ? 'Pending' : d.status === 'in_transit' ? 'In Transit' : d.status === 'delivered' ? 'Delivered' : d.status, // Placeholder - add if available from backend
+    status: d.status === 'pending_request' ? 'Pending' : d.status === 'dispatched' ? 'In Transit' : d.status === 'arrived' ? 'In Transit' : d.status === 'received' ? 'Delivered' : d.status,
   }));
 
-  if (isLoading) {
-    return (
-      <AppLayout title="Delivery History">
-        <div className="flex items-center justify-center h-64">
-          <Loader className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </AppLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <AppLayout title="Delivery History">
-        <div className="text-center text-destructive py-8">
-          <p>Failed to load delivery history. Please try again.</p>
-        </div>
-      </AppLayout>
-    );
-  }
-
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const filtered = useMemo(() => {
     return ALL_DELIVERIES.filter((d) => {
       const q = search.toLowerCase();
@@ -99,6 +92,35 @@ export default function DeliveryHistory() {
   useEffect(() => {
     setPage(1);
   }, [search, status, robot, dateFrom, dateTo]);
+
+  // NOW we can do conditional early returns
+  if (isLoading) {
+    return (
+      <AppLayout title="Delivery History">
+        <div className="flex items-center justify-center h-64">
+          <Loader className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error) {
+    console.error('Delivery History Error:', error);
+    return (
+      <AppLayout title="Delivery History">
+        <div className="text-center text-destructive py-8">
+          <p>Failed to load delivery history.</p>
+          <p className="text-sm mt-2">{error?.message || 'Unknown error'}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-[#800000] text-white rounded hover:opacity-90"
+          >
+            Retry
+          </button>
+        </div>
+      </AppLayout>
+    );
+  }
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -282,7 +304,7 @@ export default function DeliveryHistory() {
             <Bot className="h-14 w-14 text-gray-200" />
             <div className="text-center">
               <p className="text-sm font-semibold text-[#1A1A1A]">No deliveries found</p>
-              <p className="text-[12px] text-gray-400 mt-1">Try adjusting your search or filters.</p>
+              <p className="text-[12px] text-gray-400 mt-1">Try adjusting your search or filters, or <a href="/request-delivery" className="text-[#800000] hover:underline">create a new delivery request</a>.</p>
             </div>
             <button
               onClick={() => { setSearch(""); setStatus("All"); setRobot("All Robots"); setDateFrom(""); setDateTo(""); }}

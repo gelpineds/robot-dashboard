@@ -3,6 +3,8 @@ from flask_jwt_extended import jwt_required, get_jwt
 from app.extensions import db
 from app.models.alert import Alert
 from app.models.robot import Robot
+from app.utils.notifications import create_notification
+from app.models.user import User
 
 alerts_bp = Blueprint("alerts", __name__)
 
@@ -62,6 +64,37 @@ def create_alert():
 
     db.session.add(alert)
     db.session.commit()
+
+    # Notify all users of the new robot alert
+    all_users = User.query.with_entities(User.id).all()
+    for (user_id,) in all_users:
+        if alert.alert_type == 'low_battery':
+            create_notification(
+                user_id=user_id,
+                type='robot_low_battery',
+                title='Robot low battery warning',
+                message=f'{robot.name} battery is at {alert.message}%. Please ensure it returns to charging station soon.',
+                link='/robots',
+                is_action_required=False
+            )
+        elif alert.alert_type == 'offline':
+            create_notification(
+                user_id=user_id,
+                type='robot_offline',
+                title='Robot offline',
+                message=f'{robot.name} has gone offline and is not responding. Check robot status.',
+                link='/robots',
+                is_action_required=False
+            )
+        else:
+            create_notification(
+                user_id=user_id,
+                type='robot_alert',
+                title=f'Robot alert: {alert.alert_type}',
+                message=f'{robot.name} reported an issue: {alert.message or alert.alert_type}.',
+                link='/robots',
+                is_action_required=False
+            )
 
     return {
         "message": "Alert created successfully",

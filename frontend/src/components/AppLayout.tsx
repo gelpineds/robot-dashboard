@@ -1,18 +1,18 @@
-import { useState, useEffect, useRef } from "react";
+// src/components/AppLayout.tsx
+import { useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Bell, Search, Settings } from "lucide-react";
 import { AppSidebar } from "@/components/AppSidebar";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { NotificationPanel } from "@/components/ui/panels/NotificationPanel";
 import { SettingsPanel } from "@/components/ui/panels/SettingsPanel";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useNotifications } from "@/context/NotificationContext";
 import { useUser } from "@/hooks/useUser";
 
 interface AppLayoutProps {
   children: React.ReactNode;
   title?: string;
 }
- 
+
 const routeTitles: Record<string, string> = {
   "/":              "Dashboard",
   "/history":       "Deliveries",
@@ -24,30 +24,32 @@ const routeTitles: Record<string, string> = {
   "/track":         "Track Delivery",
   "/notifications": "Notifications",
 };
- 
+
 export function AppLayout({ children, title }: AppLayoutProps) {
   const navigate = useNavigate();
   const { user, getInitials } = useUser();
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [panelFilter, setPanelFilter] = useState("All");
+  const [notifOpen, setNotifOpen] = useState(false);
   const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
   const location = useLocation();
   const bellRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
- 
-  const { notifications, markRead, markAllRead } = useNotifications();
-  const unreadCount = notifications.filter((n) => !n.read).length;
- 
+
+  const { notifications, markAllAsRead, markAsRead } = useNotifications();
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const hasActionRequired = notifications.some(
+    (n) => !n.is_read && n.is_action_required
+  );
+
   const pageTitle = title ?? routeTitles[location.pathname] ?? "PUP Deliver";
- 
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#F5F5F5]">
-      {/* Sidebar is position:fixed — manages its own hover state internally via DOM listeners */}
       <AppSidebar />
- 
-      {/* Content area: fixed ml-16 matches the collapsed sidebar width.
-          The sidebar floats over content on hover — content never shifts. */}
-      <div className="ml-16 flex-1 flex flex-col min-w-0 overflow-hidden">
+
+      <div
+        className="flex-1 flex flex-col min-w-0 overflow-hidden"
+        style={{ marginLeft: "64px" }}
+      >
         {/* Top navbar */}
         <header className="h-16 flex items-center justify-between gap-4 bg-white border-b border-gray-200 px-6 shrink-0">
           {/* Page title */}
@@ -56,7 +58,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
               {pageTitle}
             </h1>
           </div>
- 
+
           {/* Search */}
           <div className="flex-1 flex justify-center">
             <div className="relative w-72">
@@ -68,34 +70,33 @@ export function AppLayout({ children, title }: AppLayoutProps) {
               />
             </div>
           </div>
- 
+
           {/* Right actions */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Bell */}
+            {/* Bell + NotificationPanel */}
             <div ref={bellRef} className="relative">
               <button
-                onClick={() => setPanelOpen((o) => !o)}
+                onClick={() => setNotifOpen((prev) => !prev)}
                 className="relative w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+                aria-label="Notifications"
               >
-                <Bell className="h-[18px] w-[18px]" />
+                <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
                   <span
-                    className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2 border-white"
-                    style={{ background: "#FFD700" }}
+                    className={`absolute top-0 right-0 w-2 h-2 rounded-full bg-[#FFD700] ${
+                      hasActionRequired ? "animate-pulse" : ""
+                    }`}
                   />
                 )}
               </button>
+
               <NotificationPanel
-                open={panelOpen}
-                onClose={() => setPanelOpen(false)}
-                notifications={notifications}
-                onMarkAllRead={markAllRead}
-                onMarkRead={markRead}
-                activeFilter={panelFilter}
-                onFilterChange={setPanelFilter}
+                isOpen={notifOpen}
+                onClose={() => setNotifOpen(false)}
+                bellRef={bellRef}
               />
             </div>
- 
+
             {/* Settings */}
             <div ref={settingsRef} className="relative">
               <button
@@ -108,9 +109,10 @@ export function AppLayout({ children, title }: AppLayoutProps) {
                 open={settingsPanelOpen}
                 onClose={() => setSettingsPanelOpen(false)}
                 user={user}
+                triggerRef={settingsRef}
               />
             </div>
- 
+
             {/* Avatar */}
             <button
               onClick={() => navigate("/settings")}
@@ -122,11 +124,9 @@ export function AppLayout({ children, title }: AppLayoutProps) {
             </button>
           </div>
         </header>
- 
+
         {/* Page content */}
-        <main className="flex-1 overflow-auto p-6">
-          {children}
-        </main>
+        <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useDelivery } from "@/lib/deliveryStore";
-import { authAPI, usersAPI, robotsAPI } from "@/lib/api";
+import { authAPI, usersAPI, robotsAPI, deliveriesAPI } from "@/lib/api";
 import type { UserProfile } from "@/lib/types";
 import {
   User, Package, MessageSquare,
@@ -273,37 +273,52 @@ export default function RequestDelivery() {
     sender.avatarColor = "#800000";
 
     try {
-      createDelivery({
-        sender,
-        recipient: recipient!,
-        item: {
-          name:   itemName.trim(),
-          qty:    parseInt(qty) || 1,
-          weight: 0,          // not collected — university context
-        },
-        senderNote: note.trim(),
-        priority:   "standard",   // single tier — no premium
-        fee:        0,            // free service
-        robotId:    robot?.id   ?? "RBT-001",
-        robotName:  robot?.name ?? "PUP-BOT Unit 1",
-      });
+      // First, create the delivery in the backend
+      deliveriesAPI.createRequest({
+        document_name: itemName.trim(),
+        sender: sender.name,
+        recipient: recipient!.name,
+        pickup_location: pickupRoom || `${pickupFloor || "Main"}`,
+        dropoff_location: recipient!.room || "Unknown Location",
+      }).then(() => {
+        // Then create it in local state for UI
+        createDelivery({
+          sender,
+          recipient: recipient!,
+          item: {
+            name:   itemName.trim(),
+            qty:    parseInt(qty) || 1,
+            weight: 0,
+          },
+          senderNote: note.trim(),
+          priority:   "standard",
+          fee:        0,
+          robotId:    robot?.id   ?? "RBT-001",
+          robotName:  robot?.name ?? "PUP-BOT Unit 1",
+        });
 
-      toast({
-        title:       "Robot dispatched!",
-        description: timingMode === "now"
-          ? "Your delivery is on its way."
-          : `Scheduled for ${schedTime}.`,
-      });
+        toast({
+          title:       "Delivery request submitted!",
+          description: "Your delivery has been submitted and is pending dispatch.",
+        });
 
-      handleClear();
-      setTimeout(() => navigate("/history"), 1000);
-    } catch {
+        handleClear();
+        setTimeout(() => navigate("/history"), 1000);
+      }).catch((error) => {
+        toast({
+          title:       "Failed to submit delivery",
+          description: error?.message || "Something went wrong. Please try again.",
+          variant:     "destructive",
+        });
+      }).finally(() => {
+        setSubmitting(false);
+      });
+    } catch (error) {
       toast({
-        title:       "Failed to dispatch",
+        title:       "Error",
         description: "Something went wrong. Please try again.",
         variant:     "destructive",
       });
-    } finally {
       setSubmitting(false);
     }
   }

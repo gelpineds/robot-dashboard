@@ -4,6 +4,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.extensions import db
 from app.models.delivery import Delivery
 from app.models.user import User
+from app.utils.notifications import create_notification
 
 deliveries_bp = Blueprint("deliveries", __name__)
 
@@ -40,6 +41,19 @@ def create_request():
 
     db.session.add(delivery)
     db.session.commit()
+
+    # Notify the requesting user that their delivery request was submitted
+    create_notification(
+        user_id=user_id,
+        type='delivery_created',
+        title='Delivery request submitted',
+        message=(
+            f'Your delivery of {delivery.document_name} '
+            f'to {delivery.recipient} at {delivery.dropoff_location} has been submitted.'
+        ),
+        link=f'/track/{delivery.id}',
+        is_action_required=False
+    )
 
     return {
         "message": "Delivery request submitted successfully",
@@ -129,6 +143,19 @@ def confirm_received(delivery_id):
 
     db.session.commit()
 
+    # Notify the requester (sender side) that the recipient confirmed receipt
+    create_notification(
+        user_id=delivery.requested_by_user_id,
+        type='delivery_completed',
+        title='Delivery confirmed',
+        message=(
+            f'{delivery.recipient} has confirmed receipt of {delivery.document_name}. '
+            f'Delivery complete.'
+        ),
+        link=f'/track/{delivery.id}',
+        is_action_required=False
+    )
+
     return {
         "message": "Delivery marked as received successfully",
         "delivery": {
@@ -176,6 +203,8 @@ def admin_update_delivery(delivery_id):
     delivery = Delivery.query.get_or_404(delivery_id)
     data = request.get_json() or {}
 
+    previous_status = delivery.status
+
     allowed_fields = [
         "document_name",
         "sender",
@@ -191,6 +220,53 @@ def admin_update_delivery(delivery_id):
             setattr(delivery, field, data[field])
 
     db.session.commit()
+
+    new_status = delivery.status
+
+    # Trigger notifications based on the new status, only when status actually changed
+    if new_status != previous_status:
+
+        if new_status == "delivered":
+            # Robot has arrived at the recipient's location
+            create_notification(
+                user_id=delivery.requested_by_user_id,
+                type='robot_arrived',
+                title='Your delivery has arrived',
+                message=(
+                    f'The robot has arrived at {delivery.dropoff_location} with '
+                    f'{delivery.document_name} from {delivery.sender}. '
+                    f'Please confirm receipt.'
+                ),
+                link='/delivery-inbox',
+                is_action_required=True
+            )
+
+        elif new_status == "cancelled":
+            # Notify the requester (sender side)
+            create_notification(
+                user_id=delivery.requested_by_user_id,
+                type='delivery_cancelled',
+                title='Delivery cancelled',
+                message=(
+                    f'Your delivery of {delivery.document_name} to '
+                    f'{delivery.recipient} has been cancelled.'
+                ),
+                link='/history',
+                is_action_required=False
+            )
+            # If a separate received_by_user_id exists, also notify them
+            if delivery.received_by_user_id and delivery.received_by_user_id != delivery.requested_by_user_id:
+                create_notification(
+                    user_id=delivery.received_by_user_id,
+                    type='delivery_cancelled',
+                    title='Incoming delivery cancelled',
+                    message=(
+                        f'The delivery of {delivery.document_name} from '
+                        f'{delivery.sender} has been cancelled.'
+                    ),
+                    link='/history',
+                    is_action_required=False
+                )
 
     return {
         "message": "Delivery updated successfully",

@@ -13,6 +13,7 @@ interface SettingsPanelProps {
   open: boolean;
   onClose: () => void;
   user: UserData | null;
+  triggerRef?: React.RefObject<HTMLDivElement>;
 }
 
 const SETTINGS_OPTIONS = [
@@ -21,20 +22,24 @@ const SETTINGS_OPTIONS = [
   { icon: Lock, label: "Privacy & Security", description: "Security settings", path: "/settings" },
 ];
 
-export function SettingsPanel({ open, onClose, user }: SettingsPanelProps) {
+export function SettingsPanel({ open, onClose, user, triggerRef }: SettingsPanelProps) {
   const navigate = useNavigate();
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
+      const target = e.target as Node;
+      // Close if click is outside panel AND outside trigger button
+      if (panelRef.current && !panelRef.current.contains(target)) {
+        if (triggerRef?.current && !triggerRef.current.contains(target)) {
+          onClose();
+        }
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [open, onClose]);
+  }, [open, onClose, triggerRef]);
 
   if (!open) return null;
 
@@ -49,7 +54,7 @@ export function SettingsPanel({ open, onClose, user }: SettingsPanelProps) {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
+    localStorage.removeItem("token");
     localStorage.removeItem("user_data");
     navigate("/login");
     onClose();

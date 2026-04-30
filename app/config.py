@@ -11,3 +11,4 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = 86400  # 24 hours
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///robot_monitoring.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    REGISTRATION_CODE = os.environ.get("REGISTRATION_CODE", "ITECH2026")

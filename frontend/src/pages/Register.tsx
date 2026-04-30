@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/inputs/input";
 import { Label } from "@/components/ui/inputs/label";
 import { Button } from "@/components/ui/buttons/button";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/utilities";
-import { Mail, Lock, LogIn, UserPlus, Info } from "lucide-react";
+import { Mail, Lock, LogIn, UserPlus, Info, KeyRound } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import { authAPI } from "@/lib/api";
 export default function Register() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    registration_code: "",
     username: "",
     email: "",
     full_name: "",
@@ -21,38 +22,55 @@ export default function Register() {
     confirmPassword: "",
     room: "",
   });
+  const [codeError, setCodeError] = useState("");
 
   const mutation = useMutation({
     mutationFn: (data: any) =>
       authAPI.register({
+        registration_code: data.registration_code,
         username: data.username,
         email: data.email,
         full_name: data.full_name,
         password: data.password,
-        role: "user",
         room: data.room || "General",
       }),
     onSuccess: (res) => {
       toast.success("Registration successful!", {
         description: "You can now sign in with your credentials.",
       });
-      
+
       // Redirect to login
       navigate("/login", { replace: true });
     },
     onError: (error: any) => {
-      toast.error("Registration failed", {
-        description: error.message || "An error occurred during registration.",
-      });
+      const message: string = error.message || "";
+
+      if (message.includes("Registration code is required")) {
+        setCodeError("Please enter the registration code.");
+      } else if (message.includes("Invalid registration code")) {
+        setCodeError("Invalid registration code. Please contact your administrator.");
+      } else {
+        setCodeError("");
+        toast.error("Registration failed", {
+          description: message || "An error occurred during registration.",
+        });
+      }
     },
   });
 
   const handleChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
+    if (field === "registration_code") setCodeError("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Registration code — inline validation before hitting the API
+    if (!formData.registration_code.trim()) {
+      setCodeError("Registration code is required.");
+      return;
+    }
 
     if (!formData.username || !formData.email || !formData.full_name || !formData.password) {
       toast.error("Please fill in all required fields");
@@ -69,6 +87,7 @@ export default function Register() {
       return;
     }
 
+    setCodeError("");
     mutation.mutate(formData);
   };
 
@@ -99,11 +118,39 @@ export default function Register() {
         {/* Register Form */}
         <Card className="p-6 bg-slate-800/50 border-slate-700">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Full Name */}
+
+            {/* Registration Code — FIRST field */}
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
+              className="space-y-2"
+            >
+              <Label htmlFor="registration_code" className="text-sm font-medium text-slate-200">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-primary/70" />
+                  Registration Code *
+                </div>
+              </Label>
+              <Input
+                id="registration_code"
+                type="password"
+                placeholder="Enter the code provided by your administrator"
+                value={formData.registration_code}
+                onChange={(e) => handleChange("registration_code", e.target.value)}
+                disabled={mutation.isPending}
+                className={`bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-primary ${codeError ? "border-red-500 focus:border-red-500" : ""}`}
+              />
+              {codeError && (
+                <p className="text-xs text-red-400 mt-1">{codeError}</p>
+              )}
+            </motion.div>
+
+            {/* Full Name */}
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
               className="space-y-2"
             >
               <Label htmlFor="full_name" className="text-sm font-medium text-slate-200">
@@ -124,7 +171,7 @@ export default function Register() {
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 }}
+              transition={{ delay: 0.2 }}
               className="space-y-2"
             >
               <Label htmlFor="username" className="text-sm font-medium text-slate-200">
@@ -145,7 +192,7 @@ export default function Register() {
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.25 }}
               className="space-y-2"
             >
               <Label htmlFor="email" className="text-sm font-medium text-slate-200">
@@ -177,7 +224,7 @@ export default function Register() {
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.25 }}
+              transition={{ delay: 0.3 }}
               className="space-y-2"
             >
               <Label htmlFor="room" className="text-sm font-medium text-slate-200">
@@ -198,7 +245,7 @@ export default function Register() {
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.35 }}
               className="space-y-2"
             >
               <Label htmlFor="password" className="text-sm font-medium text-slate-200">
@@ -222,7 +269,7 @@ export default function Register() {
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.35 }}
+              transition={{ delay: 0.4 }}
               className="space-y-2"
             >
               <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-200">
@@ -246,7 +293,7 @@ export default function Register() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.45 }}
               className="pt-2"
             >
               <Button
@@ -263,7 +310,7 @@ export default function Register() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
+            transition={{ delay: 0.55, duration: 0.5 }}
             className="mt-6 pt-6 border-t border-slate-700 text-center"
           >
             <p className="text-sm text-slate-400">

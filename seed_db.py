@@ -76,4 +76,59 @@ with app.app_context():
     db.session.commit()
     print(f"✅ Created {len(robots)} test robots")
 
+    # Create test deliveries
+    deliveries_data = [
+        {
+            "document_name": "Project Report - Final",
+            "sender": "Juan Dela Cruz",
+            "recipient": "Prof. Garcia",
+            "pickup_location": "CCIS Building - Room 301",
+            "dropoff_location": "Main Building - Faculty Office",
+            "status": "pending_request",
+            "requested_by_user_id": user1.id,
+        },
+        {
+            "document_name": "Research Documents",
+            "sender": "Maria Santos",
+            "recipient": "Dr. Reyes",
+            "pickup_location": "Library - Reference Section",
+            "dropoff_location": "Research Office",
+            "status": "dispatched",
+            "requested_by_user_id": user2.id,
+            "robot_id": robots[0].id,
+        },
+        {
+            "document_name": "Exam Papers Bundle",
+            "sender": "Juan Dela Cruz",
+            "recipient": "Registrar",
+            "pickup_location": "CCIS Building - Main Office",
+            "dropoff_location": "Nantes Building - Admin",
+            "status": "delivered",
+            "requested_by_user_id": user1.id,
+            "robot_id": robots[1].id,
+        },
+        {
+            "document_name": "Lab Equipment Manual",
+            "sender": "Maria Santos",
+            "recipient": "Lab Coordinator",
+            "pickup_location": "Main Building - Lab A",
+            "dropoff_location": "CCIS Building - Lab B",
+            "status": "received",
+            "requested_by_user_id": user2.id,
+            "robot_id": robots[0].id,
+            "received_confirmed": True,
+            "received_by_user_id": user2.id,
+            "received_at": datetime.utcnow() - timedelta(hours=2),
+        },
+    ]
+
+    deliveries = []
+    for data in deliveries_data:
+        delivery = Delivery(**data)
+        deliveries.append(delivery)
+
+    db.session.add_all(deliveries)
+    db.session.commit()
+    print(f"✅ Created {len(deliveries)} test deliveries")
+
     print("\n✅ Database seeding completed successfully!")

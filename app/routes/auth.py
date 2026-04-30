@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app.extensions import db, bcrypt
 from app.models.user import User
@@ -10,25 +10,41 @@ auth_bp = Blueprint("auth", __name__)
 def register():
     data = request.get_json() or {}
 
+    # 1. Parse fields
     username = data.get("username")
     email = data.get("email")
     full_name = data.get("full_name")
     password = data.get("password")
-    role = data.get("role", "user")
     room = data.get("room")
+    registration_code = data.get("registration_code", "").strip()
 
+    # 2. Validate registration code — must happen before anything else
+    if not registration_code:
+        return {"error": "Registration code is required."}, 400
+    if registration_code != current_app.config["REGISTRATION_CODE"]:
+        return {"error": "Invalid registration code. Please contact your administrator."}, 403
+
+    # 3. Force role to 'user' — admins are created manually, never via self-registration
+    role = data.get("role", "user")
+    if role == "admin":
+        role = "user"
+
+    # 4. Required field validation
     if not username or not email or not full_name or not password:
         return {"error": "username, email, full_name, and password are required"}, 400
 
-    existing_user = User.query.filter(
-        (User.username == username) | (User.email == email)
-    ).first()
+    # 5. Duplicate username check
+    if User.query.filter_by(username=username).first():
+        return {"error": "Username already exists"}, 409
 
-    if existing_user:
-        return {"error": "Username or email already exists"}, 409
+    # 6. Duplicate email check
+    if User.query.filter_by(email=email).first():
+        return {"error": "Email already exists"}, 409
 
+    # 7. Hash password
     password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
 
+    # 8. Create user and commit
     user = User(
         username=username,
         email=email,
@@ -41,6 +57,7 @@ def register():
     db.session.add(user)
     db.session.commit()
 
+    # 9. Return success response
     return {
         "message": "User registered successfully",
         "user": {
@@ -109,10 +126,10 @@ def get_current_user():
     """Get the currently logged-in user's information"""
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
-    
+
     if not user:
         return {"error": "User not found"}, 404
-    
+
     return {
         "id": user.id,
         "username": user.username,

@@ -1,8 +1,8 @@
 // API service for communicating with Flask backend
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
 
 // Get token from localStorage
-const getAuthToken = () => localStorage.getItem('access_token');
+const getAuthToken = () => localStorage.getItem('token');
 
 const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   const token = getAuthToken();
@@ -31,7 +31,7 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export const authAPI = {
-  register: (data: { username: string; email: string; full_name: string; password: string; role?: string; room?: string }) =>
+  register: (data: { registration_code: string; username: string; email: string; full_name: string; password: string; room?: string }) =>
     apiCall('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   login: (username: string, password: string) =>
     apiCall('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),

@@ -25,7 +25,7 @@ export default function Login() {
       authAPI.login(data.username, data.password),
     onSuccess: (res) => {
       // Save auth token
-      localStorage.setItem("access_token", res.access_token);
+      localStorage.setItem("token", res.access_token);
       
       // Save user data
       setUserData(res.user);

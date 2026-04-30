@@ -242,9 +242,6 @@ export default function Dashboard() {
         <div className="relative overflow-hidden bg-gradient-to-r from-[#800000] to-[#600000] rounded-xl border border-[#800000]/20 p-6 shadow-md">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-[13px] font-semibold text-[#FFD700] uppercase tracking-[0.06em] mb-2">
-                Quick Action
-              </p>
               <h3 className="text-[22px] font-bold text-white mb-1">Create New Delivery</h3>
               <p className="text-[13px] text-[#FFD700]/80">Start a new delivery request in seconds</p>
             </div>
