@@ -1,5 +1,19 @@
 import { useNavigate } from "react-router-dom";
-import { Eye, MapPin, Bot } from "lucide-react";
+import { Eye, MapPin, Bot, XCircle } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
+import { deliveriesAPI } from "@/lib/api";
 
 // ─── Shared status config ─────────────────────────────────────────────────────
 export const STATUS_STYLES: Record<string, { bg: string; color: string; dot: string }> = {
@@ -84,6 +98,29 @@ function avatarColor(name: string) {
 
 export function HistoryTable({ data, onView }: HistoryTableProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Cancel Delivery mutation (per row)
+  const cancelMutation = useMutation({
+    mutationFn: async (deliveryId: string) => {
+      await deliveriesAPI.updateDelivery(Number(deliveryId), { status: "cancelled" });
+    },
+    onSuccess: (_, deliveryId) => {
+      queryClient.invalidateQueries({ queryKey: ["delivery", deliveryId] });
+      queryClient.invalidateQueries({ queryKey: ["deliveries-all"] });
+      toast({
+        title: "Delivery Cancelled",
+        description: "The delivery has been cancelled successfully.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to cancel delivery",
+        description: err?.message || "An error occurred.",
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <div className="rounded-xl overflow-hidden border border-gray-200">
@@ -99,14 +136,15 @@ export function HistoryTable({ data, onView }: HistoryTableProps) {
           {data.map((row, i) => {
             const s = STATUS_STYLES[row.status] ?? STATUS_STYLES["Pending"];
             const bg = avatarColor(row.customer);
+            const numericId = row.id.replace(/\D/g, '');
+            // Only allow cancel for eligible statuses
+            const canCancel = ["Pending", "In Transit", "pending_request", "in_transit"].includes(row.status);
             return (
               <tr key={row.id} style={{ background: i % 2 === 0 ? "#fff" : "#F9FAFB" }} className="hover:bg-[#FFF5F5] transition-colors">
                 {/* Order ID */}
                 <td className="px-4 py-3">
                   <button
                     onClick={() => {
-                      // Extract numeric ID from formatted ID (e.g., "DEL-00001" -> "1")
-                      const numericId = row.id.replace(/\D/g, '');
                       navigate(`/track/${numericId}`);
                     }}
                     className="font-mono text-[11px] font-bold hover:underline underline-offset-2"
@@ -160,8 +198,6 @@ export function HistoryTable({ data, onView }: HistoryTableProps) {
                     </button>
                     <button
                       onClick={() => {
-                        // Extract numeric ID from formatted ID
-                        const numericId = row.id.replace(/\D/g, '');
                         navigate(`/track/${numericId}`);
                       }}
                       className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-yellow-50 transition-colors"
@@ -169,6 +205,37 @@ export function HistoryTable({ data, onView }: HistoryTableProps) {
                     >
                       <MapPin className="h-3.5 w-3.5 text-gray-500" />
                     </button>
+                    {/* Cancel Delivery quick action */}
+                    {canCancel && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-red-50 transition-colors"
+                            title="Cancel delivery"
+                            disabled={cancelMutation.isPending}
+                          >
+                            <XCircle className="h-3.5 w-3.5 text-red-600" />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Cancel Delivery?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to cancel this delivery? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel disabled={cancelMutation.isPending}>No, keep delivery</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => cancelMutation.mutate(numericId)}
+                              disabled={cancelMutation.isPending}
+                            >
+                              Yes, cancel it
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </td>
               </tr>
