@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
+import { Command, CommandInput, CommandList, CommandGroup, CommandItem } from "@/components/ui/utilities";
 import {
   PackageSearch,
   Bot,
@@ -9,6 +10,7 @@ import {
   Search,
   BellOff,
   Trash2,
+  Info,
 } from "lucide-react";
 import { useNotifications, NotificationType, Notification } from "@/hooks/useNotifications";
 
@@ -95,8 +97,8 @@ export default function Notifications() {
           />
         </div>
 
-        {/* Filter tabs */}
-        <div className="flex gap-1.5 flex-wrap">
+        {/* Filter tabs with info */}
+        <div className="flex gap-1.5 flex-wrap items-center">
           {FILTERS.map((f) => (
             <button
               key={f}

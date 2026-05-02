@@ -11,3 +11,68 @@ instance/
 .idea/
 .DS_Store
 node_modules/
+dist/
+build/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.*.local
+frontend/.vite/
+
+# Python
+*.egg-info/
+*.egg
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+venv/lib/
+venv/lib64/
+build/lib/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.pot
+
+# IDE
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+*.sublime-project
+*.sublime-workspace
+
+# OS
+Thumbs.db
+.AppleDouble
+.LSOverride
+._*
+
+# Documentation (generated files)
+COMPONENT_REFACTORING_COMPLETE.md
+IMPLEMENTATION_GUIDE.md
+UI_COMPONENTS_COMPLETE_FINAL.md
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.pid
+
+# Database
+*.sqlite
+*.sqlite3
+db.sqlite3

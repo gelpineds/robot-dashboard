@@ -1,9 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
+import { StatusTimeline } from "@/components/ui/timeline";
+import { RouteMap } from "@/components/ui/maps";
+import { HoverCardContent, HoverCardTrigger, HoverCard } from "@/components/ui/utilities";
 import { deliveriesAPI } from "@/lib/api";
 import {
-  ArrowLeft, Bot, MapPin, Phone, CheckCircle, Package, Clock, Truck, AlertCircle, Loader,
+  ArrowLeft, Bot, MapPin, Phone, CheckCircle, Package, Clock, Truck, AlertCircle, Loader, Info,
 } from "lucide-react";
 
 export default function TrackDelivery() {
@@ -215,30 +218,66 @@ export default function TrackDelivery() {
         {/* Robot & Sender Info */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* Robot Info */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: '#800000' }}>
-                <Bot className="h-5 w-5 text-white" />
+          <HoverCard>
+            <HoverCardTrigger asChild>
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 cursor-pointer hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: '#800000' }}>
+                    <Bot className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-[#1A1A1A]">Assigned Robot</h3>
+                    <Info className="h-3 w-3 text-gray-400 mt-1" />
+                  </div>
+                </div>
+                {delivery.robot_id ? (
+                  <p className="text-sm font-medium text-gray-700">PUP-BOT Unit {delivery.robot_id}</p>
+                ) : (
+                  <p className="text-sm text-gray-500">No robot assigned yet</p>
+                )}
               </div>
-              <h3 className="font-semibold text-[#1A1A1A]">Assigned Robot</h3>
-            </div>
-            {delivery.robot_id ? (
-              <p className="text-sm font-medium text-gray-700">PUP-BOT Unit {delivery.robot_id}</p>
-            ) : (
-              <p className="text-sm text-gray-500">No robot assigned yet</p>
-            )}
-          </div>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-64">
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm">Robot Details</h4>
+                <div className="text-xs text-gray-600 space-y-1">
+                  <p><span className="font-medium">Unit ID:</span> {delivery.robot_id || 'N/A'}</p>
+                  <p><span className="font-medium">Model:</span> DelivBot X2</p>
+                  <p><span className="font-medium">Status:</span> <span className="text-green-600">Active</span></p>
+                  <p><span className="font-medium">Battery:</span> 85%</p>
+                </div>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
 
           {/* Sender Info */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: '#FFD700' }}>
-                <Package className="h-5 w-5 text-[#800000]" />
+          <HoverCard>
+            <HoverCardTrigger asChild>
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 cursor-pointer hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: '#FFD700' }}>
+                    <Package className="h-5 w-5 text-[#800000]" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-[#1A1A1A]">Sender</h3>
+                    <Info className="h-3 w-3 text-gray-400 mt-1" />
+                  </div>
+                </div>
+                <p className="text-sm font-medium text-gray-700">{delivery.sender}</p>
               </div>
-              <h3 className="font-semibold text-[#1A1A1A]">Sender</h3>
-            </div>
-            <p className="text-sm font-medium text-gray-700">{delivery.sender}</p>
-          </div>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-64">
+              <div className="space-y-2">
+                <h4 className="font-semibold text-sm">Sender Information</h4>
+                <div className="text-xs text-gray-600 space-y-1">
+                  <p><span className="font-medium">Name:</span> {delivery.sender}</p>
+                  <p><span className="font-medium">Package:</span> {delivery.document_name}</p>
+                  <p><span className="font-medium">Status:</span> <span className="text-blue-600">Processing</span></p>
+                  <p><span className="font-medium">Date:</span> {new Date(delivery.created_at).toLocaleDateString()}</p>
+                </div>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
         </div>
       </div>
     </AppLayout>
