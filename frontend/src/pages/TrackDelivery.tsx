@@ -6,7 +6,7 @@ import { RouteMap } from "@/components/ui/maps";
 import { HoverCardContent, HoverCardTrigger, HoverCard } from "@/components/ui/utilities";
 import { deliveriesAPI } from "@/lib/api";
 import {
-  ArrowLeft, Bot, MapPin, CheckCircle, Package, AlertCircle, Loader, XCircle,
+  ArrowLeft, Bot, MapPin, CheckCircle, Package, AlertCircle, Loader, XCircle, Info,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -18,7 +18,7 @@ import {
   AlertDialogDescription,
   AlertDialogAction,
   AlertDialogCancel,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialogs";
 import { toast } from "@/hooks/use-toast";
 
 export default function TrackDelivery() {

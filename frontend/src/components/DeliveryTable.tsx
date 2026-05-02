@@ -11,7 +11,7 @@ import {
   AlertDialogDescription,
   AlertDialogAction,
   AlertDialogCancel,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialogs";
 import { toast } from "@/hooks/use-toast";
 import { deliveriesAPI } from "@/lib/api";
 

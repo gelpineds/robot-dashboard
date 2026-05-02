@@ -56,9 +56,8 @@ export function StatCard({ title, value, icon: Icon, pulse, trend, trendUp }: St
         {/* Icon badge */}
         <div
           className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "#800000" }}
         >
-          <Icon className="h-5 w-5" style={{ color: "#FFD700" }} />
+          <Icon className="h-5 w-5" style={{ color: "#800000" }} />
         </div>
       </div>
     </div>

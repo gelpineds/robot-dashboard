@@ -50,10 +50,42 @@ const fallbackLineLabels: Record<Period, string[]> = {
   Today:   ["6am","7am","8am","9am","10am","11am","12pm","1pm","2pm","3pm","4pm","5pm"],
 };
 
-// Random bar data for daily deliveries (this is placeholder data)
-const generateBarData = () => Array.from({ length: 30 }, (_, i) =>
-  Math.floor(Math.random() * 55 + 15)
-);
+// Calculate daily deliveries from real data for specified month
+const calculateDailyDeliveries = (deliveries: any[], month: number, year: number) => {
+  // Get the number of days in specified month
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
+  // Initialize array for each day of month
+  const dailyData: number[] = Array(daysInMonth).fill(0);
+  
+  // Count deliveries per day
+  deliveries.forEach((delivery: any) => {
+    const deliveryDate = new Date(delivery.created_at);
+    if (deliveryDate.getMonth() === month && deliveryDate.getFullYear() === year) {
+      const dayOfMonth = deliveryDate.getDate();
+      dailyData[dayOfMonth - 1]++;
+    }
+  });
+  
+  return dailyData;
+};
+
+// Calculate colors based on high/low delivery volume
+const calculateBarColors = (data: number[]) => {
+  const avg = data.reduce((a, b) => a + b, 0) / data.length;
+  return data.map(value => value >= avg ? "#FFD700" : "#800000");
+};
+
+// Mock data for daily deliveries (showing example of what data looks like)
+const generateMockDailyDeliveries = (month: number, year: number) => {
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  return Array.from({ length: daysInMonth }, (_, i) => {
+    // Create realistic pattern: higher on weekdays, lower on weekends
+    const dayOfWeek = (new Date(year, month, i + 1).getDay());
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    return isWeekend ? Math.floor(Math.random() * 20 + 8) : Math.floor(Math.random() * 35 + 20);
+  });
+};
 
 const rankColors: Record<number, { bg: string; text: string; label: string }> = {
   1: { bg: "#FFD700", text: "#4a0000", label: "1st" },
@@ -109,13 +141,13 @@ const lineOptions: ChartOptions<"line"> = {
   },
 };
 
-const buildBarChartData = (barData: number[]) => ({
-  labels: Array.from({ length: 30 }, (_, i) => String(i + 1)),
+const buildBarChartData = (barData: number[], colors?: string[]) => ({
+  labels: Array.from({ length: barData.length }, (_, i) => String(i + 1)),
   datasets: [
     {
       label: "Deliveries",
       data: barData,
-      backgroundColor: "#800000",
+      backgroundColor: colors || Array(barData.length).fill("#800000"),
       borderRadius: 4,
       borderSkipped: false,
     },
@@ -138,6 +170,8 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [summaryPeriod, setSummaryPeriod] = useState<Period>("Monthly");
   const [revPeriod, setRevPeriod]         = useState<Period>("Monthly");
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear]   = useState<number>(new Date().getFullYear());
 
   // Fetch real-time data
   const { data: robots = [], isLoading: robotsLoading, isFetching: robotsFetching } = useQuery({
@@ -149,7 +183,8 @@ export default function Dashboard() {
   const { data: deliveries = [], isLoading: deliveriesLoading, isFetching: deliveriesFetching } = useQuery({
     queryKey: ['deliveries-all'],
     queryFn: deliveriesAPI.getAllDeliveries,
-    refetchInterval: 5000,
+    // Removed refetchInterval - chart only updates when new deliveries are actually added
+    // Data refreshes when: user navigates, window refocus, or manual refresh
   });
 
   // Only show loading on initial load, not during refetch
@@ -223,8 +258,11 @@ export default function Dashboard() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 6); // Top 6 zones
 
-  // Generate bar chart data
-  const barData = generateBarData();
+  // Generate bar chart data from real deliveries
+  // Uncomment the line below to see MOCK data instead
+  const dailyDeliveries = calculateDailyDeliveries(deliveries, selectedMonth, selectedYear);
+  // const dailyDeliveries = generateMockDailyDeliveries(selectedMonth, selectedYear); // Toggle to see mock data example
+  const barColors = calculateBarColors(dailyDeliveries);
 
   return (
     <AppLayout title="Dashboard">
@@ -345,10 +383,50 @@ export default function Dashboard() {
           <div className="lg:col-span-3 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-[#1A1A1A]">Daily Deliveries</h2>
-              <span className="text-[11px] text-gray-400 font-medium">This month</span>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                  className="text-[11px] font-medium border border-gray-200 rounded-lg px-2 py-1 text-gray-600 outline-none focus:border-[#800000] bg-white"
+                >
+                  <option value={0}>January</option>
+                  <option value={1}>February</option>
+                  <option value={2}>March</option>
+                  <option value={3}>April</option>
+                  <option value={4}>May</option>
+                  <option value={5}>June</option>
+                  <option value={6}>July</option>
+                  <option value={7}>August</option>
+                  <option value={8}>September</option>
+                  <option value={9}>October</option>
+                  <option value={10}>November</option>
+                  <option value={11}>December</option>
+                </select>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="text-[11px] font-medium border border-gray-200 rounded-lg px-2 py-1 text-gray-600 outline-none focus:border-[#800000] bg-white"
+                >
+                  <option value={2024}>2024</option>
+                  <option value={2025}>2025</option>
+                  <option value={2026}>2026</option>
+                  <option value={2027}>2027</option>
+                </select>
+              </div>
+            </div>
+            {/* Color legend */}
+            <div className="flex items-center gap-4 mb-4 pb-4 border-b border-gray-200">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded" style={{ background: "#FFD700" }} />
+                <span className="text-[11px] text-gray-600">High Volume</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded" style={{ background: "#800000" }} />
+                <span className="text-[11px] text-gray-600">Low Volume</span>
+              </div>
             </div>
             <div className="h-[180px]">
-              <Bar data={buildBarChartData(barData)} options={barOptions} />
+              <Bar data={buildBarChartData(dailyDeliveries, barColors)} options={barOptions} />
             </div>
           </div>
 
