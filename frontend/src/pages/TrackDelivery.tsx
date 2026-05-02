@@ -1,19 +1,57 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { deliveriesAPI } from "@/lib/api";
 import {
-  ArrowLeft, Bot, MapPin, Phone, CheckCircle, Package, Clock, Truck, AlertCircle, Loader,
+  ArrowLeft, Bot, MapPin, CheckCircle, Package, AlertCircle, Loader, XCircle,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
 
 export default function TrackDelivery() {
   const navigate = useNavigate();
   const { deliveryId } = useParams<{ deliveryId: string }>();
 
+  const queryClient = useQueryClient();
   const { data: delivery, isLoading, error } = useQuery({
     queryKey: ['delivery', deliveryId],
     queryFn: () => deliveryId ? deliveriesAPI.getById(Number(deliveryId)) : Promise.reject('No delivery ID'),
     enabled: !!deliveryId,
+  });
+
+  // Cancel Delivery mutation
+  const cancelMutation = useMutation({
+    mutationFn: async () => {
+      if (!deliveryId) throw new Error("No delivery ID");
+      // Mark as cancelled (or delete, depending on API)
+      await deliveriesAPI.updateDelivery(Number(deliveryId), { status: "cancelled" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["delivery", deliveryId] });
+      queryClient.invalidateQueries({ queryKey: ["deliveries-all"] });
+      toast({
+        title: "Delivery Cancelled",
+        description: "The delivery has been cancelled successfully.",
+      });
+      navigate("/history");
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to cancel delivery",
+        description: err?.message || "An error occurred.",
+        variant: "destructive",
+      });
+    },
   });
 
   if (!deliveryId) {
@@ -91,7 +129,7 @@ export default function TrackDelivery() {
   return (
     <AppLayout title="Track Delivery">
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
+        {/* Header + Quick Actions */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -105,17 +143,49 @@ export default function TrackDelivery() {
               <p className="text-sm text-gray-500">{delivery.document_name}</p>
             </div>
           </div>
-          <span
-            className="px-4 py-2 rounded-full font-semibold text-sm"
-            style={{
-              background: delivery.status === 'delivered' ? 'rgba(22,163,74,0.1)'
-                : delivery.status === 'in_transit' ? 'rgba(217,119,6,0.1)'
-                : '#F3F4F6',
-              color: statusColor,
-            }}
-          >
-            {displayStatus}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className="px-4 py-2 rounded-full font-semibold text-sm"
+              style={{
+                background: delivery.status === 'delivered' ? 'rgba(22,163,74,0.1)'
+                  : delivery.status === 'in_transit' ? 'rgba(217,119,6,0.1)'
+                  : '#F3F4F6',
+                color: statusColor,
+              }}
+            >
+              {displayStatus}
+            </span>
+            {/* Cancel Delivery quick action (show only if not delivered/cancelled/failed) */}
+            {['pending_request', 'in_transit'].includes(delivery.status) && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button
+                    className="ml-2 flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors"
+                    disabled={cancelMutation.isPending}
+                  >
+                    <XCircle className="w-4 h-4 mr-1" /> Cancel Delivery
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancel Delivery?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to cancel this delivery? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={cancelMutation.isPending}>No, keep delivery</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => cancelMutation.mutate()}
+                      disabled={cancelMutation.isPending}
+                    >
+                      Yes, cancel it
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </div>
 
         {/* Map Card */}
