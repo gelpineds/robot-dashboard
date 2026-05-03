@@ -12,7 +12,7 @@ def create_app():
     # Initialize CORS FIRST before registering routes
     cors.init_app(app, resources={
         r"/api/*": {
-            "origins": ["http://localhost:8080", "http://localhost:3000"],
+            "origins": ["http://localhost:8000", "http://localhost:8081", "http://localhost:8080", "http://localhost:3000", "http://localhost:5173"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
             "allow_headers": ["Content-Type", "Authorization"],
             "expose_headers": ["Content-Type"],

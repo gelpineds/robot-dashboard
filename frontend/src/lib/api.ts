@@ -9,7 +9,7 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
-  };
+  }; 
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
