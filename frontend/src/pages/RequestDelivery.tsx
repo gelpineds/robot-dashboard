@@ -15,9 +15,9 @@ import {
 
 // ─── Robot status styles (preserved) ─────────────────────────────────────────
 const ROBOT_STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  Online:        { bg: "rgba(22,163,74,0.1)", color: "#15803d" },
-  "On Delivery": { bg: "#FFD700",             color: "#800000" },
-  Offline:       { bg: "#F3F4F6",             color: "#9CA3AF" },
+  Online: { bg: "rgba(22,163,74,0.1)", color: "#15803d" },
+  "On Delivery": { bg: "#FFD700", color: "#800000" },
+  Offline: { bg: "#F3F4F6", color: "#9CA3AF" },
 };
 
 // ─── Floor → room map (preserved) ────────────────────────────────────────────
@@ -31,7 +31,7 @@ const roomsByFloor: Record<string, string[]> = {
 // ─── Preset time slots (preserved — only used in schedule mode) ───────────────
 const TIME_SLOTS = [
   "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM",
-  "1:00 PM", "2:00 PM",  "3:00 PM",  "4:00 PM", "5:00 PM",
+  "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM",
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -45,12 +45,12 @@ function toUserProfile(u: any): UserProfile {
   const initials = parts.length >= 2
     ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
     : name.slice(0, 2).toUpperCase();
-  const palette = ["#0891B2","#059669","#7C3AED","#D97706","#BE185D","#0F766E","#1F2937","#0284C7"];
+  const palette = ["#0891B2", "#059669", "#7C3AED", "#D97706", "#BE185D", "#0F766E", "#1F2937", "#0284C7"];
   return {
-    id:          String(u.id),
+    id: String(u.id),
     name,
-    room:        u.room        ?? "No room set",
-    building:    u.building    ?? "PUP Manila",
+    room: u.room ?? "No room set",
+    building: u.building ?? "PUP Manila",
     initials,
     avatarColor: palette[u.id % palette.length],
   };
@@ -140,55 +140,55 @@ function SummaryRow({ label, children }: { label: string; children: React.ReactN
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function RequestDelivery() {
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { createDelivery } = useDelivery();
 
   // ── Fetch current user ────────────────────────────────────────────────────
   const { data: me, isLoading: meLoading, error: meError } = useQuery({
     queryKey: ["currentUser"],
-    queryFn:  () => authAPI.getCurrentUser(),
+    queryFn: () => authAPI.getCurrentUser(),
   });
 
   // Fetch real robots ────────────────────────────────────────────────────────
   const { data: robotsData = [], isLoading: robotsLoading } = useQuery({
     queryKey: ["robots"],
-    queryFn:  () => robotsAPI.getAll(),
+    queryFn: () => robotsAPI.getAll(),
   });
   const robots = (robotsData as any[]).map((r) => ({
-    id:     String(r.id),
-    name:   r.name   ?? `PUP-BOT ${r.id}`,
+    id: String(r.id),
+    name: r.name ?? `PUP-BOT ${r.id}`,
     status: r.status ?? "Offline",
   }));
 
   // ── Recipient search ──────────────────────────────────────────────────────
   const [recipientQuery, setRecipientQuery] = useState("");
-  const [recipient,      setRecipient]      = useState<UserProfile | null>(null);
-  const [dropdownOpen,   setDropdownOpen]   = useState(false);
+  const [recipient, setRecipient] = useState<UserProfile | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { data: searchResults = [], isFetching: searching } = useQuery<any[]>({
     queryKey: ["userSearch", recipientQuery],
-    queryFn:  () => usersAPI.search(recipientQuery),
-    enabled:  recipientQuery.trim().length > 0 && !recipient,
+    queryFn: () => usersAPI.search(recipientQuery),
+    enabled: recipientQuery.trim().length > 0 && !recipient,
     placeholderData: [],
   });
 
   // ── Pickup floor / room ───────────────────────────────────────────────────
   const [pickupFloor, setPickupFloor] = useState("");
-  const [pickupRoom,  setPickupRoom]  = useState("");
+  const [pickupRoom, setPickupRoom] = useState("");
 
   // ── Package fields ────────────────────────────────────────────────────────
   const [itemName, setItemName] = useState("");
-  const [qty,      setQty]      = useState("1");
-  const [note,     setNote]     = useState("");
+  const [qty, setQty] = useState("1");
+  const [note, setNote] = useState("");
 
   // ── Timing mode: "now" or "schedule" ─────────────────────────────────────
   const [timingMode, setTimingMode] = useState<"now" | "schedule">("now");
-  const [schedTime,  setSchedTime]  = useState("");   // preset slot
+  const [schedTime, setSchedTime] = useState("");   // preset slot
 
   // ── Form meta ─────────────────────────────────────────────────────────────
-  const [errors,     setErrors]     = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
   // ── Derived ───────────────────────────────────────────────────────────────
@@ -209,16 +209,16 @@ export default function RequestDelivery() {
     if (field === "pickupRoom") setPickupRoom(value);
     else if (field === "itemName") setItemName(value);
     if (!value.trim()) setErrors((e) => ({ ...e, [field]: "This field is required" }));
-    else               setErrors((e) => ({ ...e, [field]: undefined as any }));
+    else setErrors((e) => ({ ...e, [field]: undefined as any }));
   };
 
   // ── Validation ────────────────────────────────────────────────────────────
   function validate() {
     const e: Record<string, string> = {};
-    if (!recipient)       e.recipient = "Please select a recipient.";
-    if (!itemName.trim()) e.itemName  = "Item name is required.";
+    if (!recipient) e.recipient = "Please select a recipient.";
+    if (!itemName.trim()) e.itemName = "Item name is required.";
     if (timingMode === "schedule" && !schedTime)
-                          e.schedTime = "Please select a time slot.";
+      e.schedTime = "Please select a time slot.";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -317,7 +317,7 @@ export default function RequestDelivery() {
       toast({
         title:       "Error",
         description: "Something went wrong. Please try again.",
-        variant:     "destructive",
+        variant: "destructive",
       });
       setSubmitting(false);
     }
@@ -483,7 +483,7 @@ export default function RequestDelivery() {
               </div>
             </div>
 
-            {/* Section 3: Package Details — no weight, no fee */}
+            {/* Section 3: Package Details — no weight, no fee */}s
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <SectionHeading>Package Details</SectionHeading>
               <div className="space-y-3.5">
@@ -665,7 +665,7 @@ export default function RequestDelivery() {
                   background: "#800000",
                   color: "#FFD700",
                   opacity: submitting || !isFormValid ? 0.5 : 1,
-                  cursor:  submitting || !isFormValid ? "not-allowed" : "pointer",
+                  cursor: submitting || !isFormValid ? "not-allowed" : "pointer",
                 }}
                 onMouseEnter={(e) => { if (!submitting && isFormValid) e.currentTarget.style.background = "#660000"; }}
                 onMouseLeave={(e) => { if (!submitting && isFormValid) e.currentTarget.style.background = "#800000"; }}
@@ -752,8 +752,8 @@ export default function RequestDelivery() {
                 <SummaryRow label="Pickup">
                   {pickupRoom
                     ? <span className="inline-flex items-center gap-1 text-[12px] font-medium text-[#1A1A1A]">
-                        <MapPin className="h-3 w-3 text-[#800000]" />Room {pickupRoom}
-                      </span>
+                      <MapPin className="h-3 w-3 text-[#800000]" />Room {pickupRoom}
+                    </span>
                     : <span className="text-[12px] text-gray-300 italic">—</span>}
                 </SummaryRow>
 
