@@ -99,65 +99,6 @@ export default function SettingsPage() {
 
             <Separator className="my-4" />
 
-            {/* Notification Settings */}
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "#FFD700" }}>
-                  <Badge className="w-4 h-4 text-[#800000]" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">Notification Preferences</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Configure delivery alerts</p>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm">Email notifications</Label>
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-64 text-xs">
-                      <p>Receive email updates about your delivery requests and robot fleet status</p>
-                    </HoverCardContent>
-                  </HoverCard>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm">SMS alerts for urgent deliveries</Label>
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-64 text-xs">
-                      <p>Get SMS notifications for deliveries</p>
-                    </HoverCardContent>
-                  </HoverCard>
-                </div>
-                <Switch />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm">Browser push notifications</Label>
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-64 text-xs">
-                      <p>Real-time notifications in your browser when deliveries are updated</p>
-                    </HoverCardContent>
-                  </HoverCard>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            </div>
-
-            <Separator className="my-6" />
-
             {/* Save Button */}
             <div className="flex gap-3">
               <Button 

@@ -5,6 +5,7 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/u
 import { FileText, Clock, User, Loader, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { deliveriesAPI } from "@/lib/api";
+import { formatDateOnly } from "@/hooks/useTimeAgo";
 
 const typeColor: Record<string, string> = {
   Administrative: "bg-primary/10 text-primary border-primary/20",
@@ -42,7 +43,7 @@ export default function Documents() {
     name: delivery.document_name,
     type: "Administrative", // Dynamic based on backend data
     pages: 1, // Placeholder
-    lastSent: new Date(delivery.created_at).toLocaleDateString(),
+    lastSent: formatDateOnly(delivery.created_at),
     sentBy: delivery.sender,
   }));
 

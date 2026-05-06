@@ -1,4 +1,4 @@
-from flask import Blueprint, request, current_app
+from flask import Blueprint, request, current_app, session, redirect, url_for
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app.extensions import db, bcrypt
 from app.models.user import User
@@ -73,15 +73,27 @@ def register():
 
 @auth_bp.post("/login")
 def login():
-    data = request.get_json() or {}
+    try:
+        data = request.get_json()
+        if data is None:
+            return {"error": "Request body must be JSON"}, 400
+    except Exception as e:
+        return {"error": f"Failed to parse JSON: {str(e)}"}, 400
 
-    username = data.get("username")
+    # Accept either email or username
+    username_or_email = data.get("email") or data.get("username")
     password = data.get("password")
 
-    if not username or not password:
-        return {"error": "username and password are required"}, 400
+    if not username_or_email:
+        return {"error": "email or username is required"}, 400
+    
+    if not password:
+        return {"error": "password is required"}, 400
 
-    user = User.query.filter_by(username=username).first()
+    # Try to find user by email first, then by username
+    user = User.query.filter_by(email=username_or_email).first()
+    if not user:
+        user = User.query.filter_by(username=username_or_email).first()
 
     if not user:
         return {"error": "Invalid username or password"}, 401
@@ -138,3 +150,68 @@ def get_current_user():
         "role": user.role,
         "room": user.room
     }, 200
+
+
+@auth_bp.post("/admin-login")
+def admin_login():
+    """Admin login endpoint that creates a session for Flask-Admin access"""
+    try:
+        data = request.get_json()
+        if data is None:
+            return {"error": "Request body must be JSON"}, 400
+    except Exception as e:
+        return {"error": f"Failed to parse JSON: {str(e)}"}, 400
+
+    # Accept either email or username
+    username_or_email = data.get("email") or data.get("username")
+    password = data.get("password")
+
+    if not username_or_email:
+        return {"error": "email or username is required"}, 400
+    
+    if not password:
+        return {"error": "password is required"}, 400
+
+    # Try to find user by email first, then by username
+    user = User.query.filter_by(email=username_or_email).first()
+    if not user:
+        user = User.query.filter_by(username=username_or_email).first()
+
+    if not user:
+        return {"error": "Invalid username or password"}, 401
+
+    if user.role != 'admin':
+        return {"error": "Admin access required"}, 403
+
+    if not user.is_active:
+        return {"error": "This account is inactive"}, 403
+
+    if not bcrypt.check_password_hash(user.password_hash, password):
+        return {"error": "Invalid username or password"}, 401
+
+    # Set session for Flask-Admin
+    session['admin_user_id'] = user.id
+    session['admin_username'] = user.username
+    session.permanent = True
+
+    return {
+        "message": "Admin login successful",
+        "redirect": "/admin/",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role
+        }
+    }, 200
+
+
+@auth_bp.get("/admin-login")
+def admin_login_page():
+    """Admin login page - redirects to frontend or returns basic form"""
+    from urllib.parse import urlencode
+    next_url = request.args.get('next', '/admin/')
+    # Redirect to frontend login with admin mode and next parameter
+    frontend_url = f"http://localhost:3000/login?admin=true&next={urlencode({'next': next_url})}"
+    return redirect(frontend_url)

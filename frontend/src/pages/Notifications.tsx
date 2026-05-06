@@ -8,7 +8,7 @@ import {
   Search,
 } from "lucide-react";
 import { useNotifications } from "@/context/NotificationContext";
-import { NotificationCard, formatTimestamp } from "@/components/ui/notifications";
+import { NotificationCard } from "@/components/ui/notifications";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

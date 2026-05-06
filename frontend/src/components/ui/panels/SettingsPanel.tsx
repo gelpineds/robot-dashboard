@@ -17,9 +17,7 @@ interface SettingsPanelProps {
 }
 
 const SETTINGS_OPTIONS = [
-  { icon: Settings, label: "Settings", description: "System preferences", path: "/settings" },
   { icon: User, label: "Profile", description: "Account information", path: "/settings" },
-  { icon: Lock, label: "Privacy & Security", description: "Security settings", path: "/settings" },
 ];
 
 export function SettingsPanel({ open, onClose, user, triggerRef }: SettingsPanelProps) {

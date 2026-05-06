@@ -26,11 +26,6 @@ def create_app():
     migrate.init_app(app, db)
     jwt.init_app(app)
     bcrypt.init_app(app)
-    socketio.init_app(
-        app,
-        cors_allowed_origins=["http://localhost:8080", "http://localhost:3000"],
-        cors_credentials=True
-    )
 
     # Register blueprints AFTER CORS is initialized
     from app.routes.auth import auth_bp
@@ -48,6 +43,17 @@ def create_app():
     app.register_blueprint(telemetry_bp, url_prefix="/api/telemetry")
     app.register_blueprint(alerts_bp, url_prefix="/api/alerts")
     app.register_blueprint(notifications_bp, url_prefix="/api/notifications")
+
+    # Initialize Flask-Admin BEFORE SocketIO
+    from app.admin import init_admin
+    init_admin(app)
+
+    # Initialize SocketIO LAST so it wraps everything properly
+    socketio.init_app(
+        app,
+        cors_allowed_origins=["http://localhost:8080", "http://localhost:3000"],
+        cors_credentials=True
+    )
 
     # SocketIO: join personal room on authentication
     from flask_socketio import join_room, emit, disconnect
@@ -89,7 +95,9 @@ def create_app():
 
     @socketio.on_error_default
     def default_error_handler(e):
+        import traceback
         print(f"[SocketIO] Unhandled error: {str(e)}")
+        print(f"[SocketIO] Traceback:\n{traceback.format_exc()}")
 
     @app.route("/")
     def home():
@@ -97,7 +105,13 @@ def create_app():
 
     @app.errorhandler(Exception)
     def handle_error(error):
-        print(f"[Flask] Unhandled error: {str(error)}")
-        return {"error": "Internal server error"}, 500
+        import traceback
+        import sys
+        error_trace = traceback.format_exc()
+        print(f"\n[Flask] Unhandled error: {str(error)}", file=sys.stderr)
+        print(f"[Flask] Type: {type(error).__name__}", file=sys.stderr)
+        print(f"[Flask] Traceback:\n{error_trace}", file=sys.stderr)
+        sys.stderr.flush()
+        return {"error": f"Internal server error: {str(error)}"}, 500
 
     return app

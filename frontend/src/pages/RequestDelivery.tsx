@@ -28,12 +28,6 @@ const roomsByFloor: Record<string, string[]> = {
   "4th Floor": ["401", "402", "403", "404", "410"],
 };
 
-// ─── Preset time slots (preserved — only used in schedule mode) ───────────────
-const TIME_SLOTS = [
-  "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM",
-  "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM",
-];
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function todayDate() {
   return new Date().toISOString().split("T")[0];
@@ -137,7 +131,6 @@ function SummaryRow({ label, children }: { label: string; children: React.ReactN
     </div>
   );
 }
-
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function RequestDelivery() {
   const navigate = useNavigate();
@@ -185,7 +178,6 @@ export default function RequestDelivery() {
 
   // ── Timing mode: "now" or "schedule" ─────────────────────────────────────
   const [timingMode, setTimingMode] = useState<"now" | "schedule">("now");
-  const [schedTime, setSchedTime] = useState("");   // preset slot
 
   // ── Form meta ─────────────────────────────────────────────────────────────
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -193,6 +185,26 @@ export default function RequestDelivery() {
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const isFormValid = !!(recipient && itemName.trim());
+
+  // ── Auto-populate sender's room as pickup location ─────────────────────────
+  useEffect(() => {
+    if (me?.room) {
+      const roomStr = String(me.room);
+      const firstDigit = roomStr.charAt(0);
+      const floorMap: Record<string, string> = {
+        "1": "1st Floor",
+        "2": "2nd Floor",
+        "3": "3rd Floor",
+        "4": "4th Floor",
+      };
+      const detectedFloor = floorMap[firstDigit];
+
+      if (detectedFloor && roomsByFloor[detectedFloor]?.includes(roomStr)) {
+        setPickupFloor(detectedFloor);
+        setPickupRoom(roomStr);
+      }
+    }
+  }, [me]);
 
   // ── Outside click → close dropdown ───────────────────────────────────────
   useEffect(() => {
@@ -217,9 +229,6 @@ export default function RequestDelivery() {
     const e: Record<string, string> = {};
     if (!recipient) e.recipient = "Please select a recipient.";
     if (!itemName.trim()) e.itemName = "Item name is required.";
-    if (timingMode === "schedule" && !schedTime)
-      e.schedTime = "Please select a time slot.";
-    setErrors(e);
     return Object.keys(e).length === 0;
   }
 
@@ -245,12 +254,12 @@ export default function RequestDelivery() {
     if (errors.recipient) setErrors((prev) => ({ ...prev, recipient: "" }));
   }
 
-  // ── Clear form (preserved) ────────────────────────────────────────────────
+  // ── Clear form ────────────────────────────────────────────────────────────
   function handleClear() {
     setRecipient(null); setRecipientQuery("");
     setPickupFloor(""); setPickupRoom("");
     setItemName(""); setQty("1"); setNote("");
-    setTimingMode("now"); setSchedTime("");
+    setTimingMode("now");
     setErrors({});
   }
 
@@ -264,24 +273,23 @@ export default function RequestDelivery() {
     const onlineRobots = robots.filter((r) => r.status === "Online");
     const robot = onlineRobots[Math.floor(Math.random() * onlineRobots.length)] ?? robots[0];
 
-    // Build sender profile from real API data
     const sender: UserProfile = me
       ? toUserProfile({ ...me, avatarColor: "#800000" })
       : { id: "unknown", name: "You", room: "—", building: "PUP Manila", initials: "?", avatarColor: "#800000" };
 
-    // Force avatarColor to maroon for the logged-in sender
     sender.avatarColor = "#800000";
 
     try {
-      // First, create the delivery in the backend
       deliveriesAPI.createRequest({
         document_name: itemName.trim(),
         sender: sender.name,
         recipient: recipient!.name,
         pickup_location: pickupRoom || `${pickupFloor || "Main"}`,
         dropoff_location: recipient!.room || "Unknown Location",
+        recipient_user_id: parseInt(recipient!.id),
+        quantity: parseInt(qty) || 1,
+        notes: note.trim(),
       }).then(() => {
-        // Then create it in local state for UI
         createDelivery({
           sender,
           recipient: recipient!,
@@ -356,7 +364,6 @@ export default function RequestDelivery() {
     );
   }
 
-  // Build sender profile for display
   const senderProfile = toUserProfile(me);
   senderProfile.avatarColor = "#800000";
 
@@ -367,7 +374,6 @@ export default function RequestDelivery() {
         The robot will be dispatched immediately after you submit.
       </p>
 
-      {/* Loading banner (preserved) */}
       {submitting && (
         <div className="mb-5 flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
           <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse inline-flex" />
@@ -381,7 +387,7 @@ export default function RequestDelivery() {
           {/* ── LEFT COLUMN ─────────────────────────────────────────────────── */}
           <div className="flex-[3] min-w-0 space-y-4">
 
-            {/* Section 1: Sender — read-only, real data from API */}
+            {/* Section 1: Sender */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <SectionHeading>Sending From</SectionHeading>
               <p className="text-[11px] text-gray-400 mb-2.5">Sending from</p>
@@ -399,7 +405,7 @@ export default function RequestDelivery() {
               </div>
             </div>
 
-            {/* Section 2: Recipient — live search via API */}
+            {/* Section 2: Recipient */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <SectionHeading>Recipient</SectionHeading>
               <div className="space-y-3">
@@ -421,7 +427,6 @@ export default function RequestDelivery() {
                       disabled={!!recipient}
                     />
 
-                    {/* Dropdown */}
                     {dropdownOpen && !recipient && (
                       <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden max-h-56 overflow-y-auto">
                         {searching ? (
@@ -462,7 +467,6 @@ export default function RequestDelivery() {
                   </div>
                 </FieldWrapper>
 
-                {/* Selected recipient pill */}
                 {recipient && (
                   <div className="flex items-center gap-3 bg-[#800000]/5 border border-[#800000]/15 rounded-lg px-4 py-2.5">
                     <AvatarCircle initials={recipient.initials} color={recipient.avatarColor} size={32} />
@@ -483,7 +487,7 @@ export default function RequestDelivery() {
               </div>
             </div>
 
-            {/* Section 3: Package Details — no weight, no fee */}s
+            {/* Section 3: Package Details */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <SectionHeading>Package Details</SectionHeading>
               <div className="space-y-3.5">
@@ -543,73 +547,37 @@ export default function RequestDelivery() {
               <SectionHeading>Delivery Options</SectionHeading>
               <div className="space-y-4">
 
-                {/* Pickup floor + room (preserved floor-based selection) */}
-                <div className="grid grid-cols-2 gap-3">
-                  <FieldWrapper label="Pickup Floor" required>
-                    <SelectInput
-                      value={pickupFloor}
-                      onChange={(v) => { setPickupFloor(v); set("pickupRoom")(""); }}
-                      placeholder="Select Floor"
-                      options={Object.keys(roomsByFloor)}
-                    />
-                  </FieldWrapper>
-                  {/* Room dropdown disabled until floor selected (preserved) */}
-                  <FieldWrapper label="Pickup Room" required error={errors.pickupRoom}>
-                    <SelectInput
-                      value={pickupRoom}
-                      onChange={set("pickupRoom")}
-                      placeholder="Select Room"
-                      options={pickupFloor ? roomsByFloor[pickupFloor] : []}
-                      error={!!errors.pickupRoom}
-                      disabled={!pickupFloor}
-                    />
-                  </FieldWrapper>
-                </div>
-
-                {/* Timing: Deliver Now vs Schedule */}
-                <FieldWrapper label="When to Deliver">
-                  <div className="flex rounded-lg border border-gray-200 overflow-hidden w-full">
-                    <button
-                      type="button"
-                      onClick={() => { setTimingMode("now"); setSchedTime(""); }}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[12.5px] font-semibold transition-colors"
-                      style={timingMode === "now"
-                        ? { background: "#800000", color: "#FFD700" }
-                        : { background: "#F9FAFB", color: "#6B7280" }}
-                    >
-                      <Zap className="h-3.5 w-3.5" />
-                      Deliver Now
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTimingMode("schedule")}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[12.5px] font-semibold transition-colors border-l border-gray-200"
-                      style={timingMode === "schedule"
-                        ? { background: "#800000", color: "#FFD700" }
-                        : { background: "#F9FAFB", color: "#6B7280" }}
-                    >
-                      <CalendarClock className="h-3.5 w-3.5" />
-                      Schedule
-                    </button>
+                {/* Pickup floor + room */}
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <FieldWrapper label="Pickup Floor" required>
+                      <SelectInput
+                        value={pickupFloor}
+                        onChange={(v) => { setPickupFloor(v); set("pickupRoom")(""); }}
+                        placeholder="Select Floor"
+                        options={Object.keys(roomsByFloor)}
+                      />
+                    </FieldWrapper>
+                    <FieldWrapper label="Pickup Room" required error={errors.pickupRoom}>
+                      <SelectInput
+                        value={pickupRoom}
+                        onChange={set("pickupRoom")}
+                        placeholder="Select Room"
+                        options={pickupFloor ? roomsByFloor[pickupFloor] : []}
+                        error={!!errors.pickupRoom}
+                        disabled={!pickupFloor}
+                      />
+                    </FieldWrapper>
                   </div>
-                </FieldWrapper>
-
-                {/* Time slot — only shown in schedule mode (preset slots, preserved) */}
-                {timingMode === "schedule" && (
-                  <FieldWrapper label="Time Slot" required error={errors.schedTime}>
-                    <SelectInput
-                      value={schedTime}
-                      onChange={(v) => {
-                        setSchedTime(v);
-                        setErrors(p => ({ ...p, schedTime: undefined as any }));
-                      }}
-                      placeholder="Select a time slot"
-                      options={TIME_SLOTS}
-                      error={!!errors.schedTime}
-                    />
-                  </FieldWrapper>
-                )}
-
+                  {pickupRoom && me?.room === pickupRoom && (
+                    <div className="flex items-start gap-2 p-2.5 rounded-lg">
+                      <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-blue-700">
+                        Pickup location set to your current location (Room {pickupRoom})
+                      </p>
+                    </div>
+                  )}
+                </div>
                 {/* "Deliver Now" context note */}
                 {timingMode === "now" && (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 border border-green-200">
@@ -620,7 +588,7 @@ export default function RequestDelivery() {
                   </div>
                 )}
 
-                {/* Robot selector — real data from API (ROBOT_STATUS_STYLE preserved) */}
+                {/* Robot selector */}
                 <FieldWrapper label="Assigned Robot">
                   {robotsLoading ? (
                     <div className="flex items-center gap-2 px-3 py-2.5 text-[12.5px] text-gray-400 bg-gray-50 border border-gray-200 rounded-lg">
@@ -673,7 +641,6 @@ export default function RequestDelivery() {
                 <Send className="h-4 w-4" />
                 {submitting ? "Dispatching..." : "Dispatch Robot Now"}
               </button>
-              {/* Clear form (preserved) */}
               <button
                 type="button"
                 onClick={handleClear}
@@ -763,11 +730,6 @@ export default function RequestDelivery() {
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full"
                       style={{ background: "rgba(22,163,74,0.10)", color: "#15803d" }}>
                       <Zap className="h-3 w-3" />Now
-                    </span>
-                  ) : schedTime ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: "#800000", color: "#FFD700" }}>
-                      <CalendarClock className="h-3 w-3" />{schedTime}
                     </span>
                   ) : (
                     <span className="text-[12px] text-gray-300 italic">—</span>

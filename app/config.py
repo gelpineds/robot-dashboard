@@ -12,3 +12,9 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///robot_monitoring.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     REGISTRATION_CODE = os.environ.get("REGISTRATION_CODE", "ITECH2026")
+    
+    # Session configuration for Flask-Admin
+    SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    PERMANENT_SESSION_LIFETIME = 86400  # 24 hours

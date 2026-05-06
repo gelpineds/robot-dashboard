@@ -5,6 +5,7 @@ import { StatusTimeline } from "@/components/ui/timeline";
 import { RouteMap } from "@/components/ui/maps";
 import { HoverCardContent, HoverCardTrigger, HoverCard } from "@/components/ui/utilities";
 import { deliveriesAPI } from "@/lib/api";
+import { formatTimeOnly, formatDateOnly, formatTimestampStatic } from "@/hooks/useTimeAgo";
 import {
   ArrowLeft, Bot, MapPin, CheckCircle, Package, AlertCircle, Loader, XCircle, Info,
 } from "lucide-react";
@@ -276,7 +277,7 @@ export default function TrackDelivery() {
                   <div className="pt-1 flex-1">
                     <p className="text-sm font-semibold text-[#1A1A1A]">{step.label}</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {step.done ? new Date(delivery.created_at).toLocaleTimeString() : '—'}
+                      {step.done ? formatTimeOnly(delivery.created_at) : '—'}
                     </p>
                   </div>
                 </div>
@@ -343,7 +344,7 @@ export default function TrackDelivery() {
                   <p><span className="font-medium">Name:</span> {delivery.sender}</p>
                   <p><span className="font-medium">Package:</span> {delivery.document_name}</p>
                   <p><span className="font-medium">Status:</span> <span className="text-blue-600">Processing</span></p>
-                  <p><span className="font-medium">Date:</span> {new Date(delivery.created_at).toLocaleDateString()}</p>
+                  <p><span className="font-medium">Date:</span> {formatDateOnly(delivery.created_at)}</p>
                 </div>
               </div>
             </HoverCardContent>

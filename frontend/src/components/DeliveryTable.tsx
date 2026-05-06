@@ -127,7 +127,7 @@ export function HistoryTable({ data, onView }: HistoryTableProps) {
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr style={{ background: "#800000" }}>
-            {["Order ID", "Customer", "Robot", "Route", "Date & Time", "Status", "Actions"].map((h) => (
+            {["Delivery ID", "Sender", "Robot", "Route", "Date & Time", "Status", "Actions"].map((h) => (
               <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-white tracking-wide whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -138,7 +138,7 @@ export function HistoryTable({ data, onView }: HistoryTableProps) {
             const bg = avatarColor(row.customer);
             const numericId = row.id.replace(/\D/g, '');
             // Only allow cancel for eligible statuses
-            const canCancel = ["Pending", "In Transit", "pending_request", "in_transit"].includes(row.status);
+            const canCancel = ["Pending", "In Transit", "pending_request", "robot_assigned", "in_transit"].includes(row.status);
             return (
               <tr key={row.id} style={{ background: i % 2 === 0 ? "#fff" : "#F9FAFB" }} className="hover:bg-[#FFF5F5] transition-colors">
                 {/* Order ID */}

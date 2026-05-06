@@ -59,18 +59,6 @@ export function AppLayout({ children, title }: AppLayoutProps) {
             </h1>
           </div>
 
-          {/* Search */}
-          <div className="flex-1 flex justify-center">
-            <div className="relative w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Search deliveries, robots…"
-                className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-full outline-none focus:border-[#800000] focus:ring-2 focus:ring-[#800000]/10 transition-all placeholder:text-gray-400 text-[#1A1A1A]"
-              />
-            </div>
-          </div>
-
           {/* Right actions */}
           <div className="flex items-center gap-2 shrink-0">
             {/* Bell + NotificationPanel */}

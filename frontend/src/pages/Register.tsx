@@ -1,478 +1,451 @@
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Mail, Lock, UserPlus, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import { authAPI } from "@/lib/api";
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Mail, Lock, User, AtSign, MapPin, Eye, EyeOff, Loader2, AlertCircle, Bot, CheckCircle2, KeyRound } from "lucide-react";
+import { motion } from "framer-motion";
+import { authAPI } from "../lib/api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/inputs/select";
 
-// --- Validation Helper ---
-function getFieldError(name: string, value: string, password?: string): string {
-  if (!value || !value.trim()) return `${name} is required`;
-  if (name === "Email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Invalid email format";
-  if (name === "Password" && value.length < 6) return "Min. 6 characters required";
-  if (name === "Confirm Password" && value !== password) return "Passwords do not match";
-  return "";
-}
-
-// --- Password Strength ---
-function getStrength(pass: string) {
-  let score = 0;
-  if (pass.length >= 6) score++;
-  if (/[A-Z]/.test(pass)) score++;
-  if (/[0-9]/.test(pass)) score++;
-  if (/[^A-Za-z0-9]/.test(pass)) score++;
-  return score;
-}
-
-function FieldError({ message }: { message: string }) {
-  return (
-    <AnimatePresence>
-      {message && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="flex items-center gap-1.5 mt-1">
-          <AlertCircle className="w-3 h-3 text-red-400 shrink-0" />
-          <span className="text-[11px] text-red-400 font-medium tracking-tight">{message}</span>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+interface FieldErrors {
+  [key: string]: string;
 }
 
 export default function Register() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     registration_code: "",
+    full_name: "",
     username: "",
     email: "",
-    full_name: "",
+    floor: "",
+    room: "",
     password: "",
     confirmPassword: "",
-    floor: "",
-    room_number: "",
   });
-  const [codeError, setCodeError] = useState("");
-
-  const [errors, setErrors] = useState<any>({});
-  const [touched, setTouched] = useState<any>({});
-  const [showPass, setShowPass] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showCode, setShowCode] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    setErrors({
-      full_name: touched.full_name ? getFieldError("Full Name", formData.full_name) : "",
-      username: touched.username ? getFieldError("Username", formData.username) : "",
-      email: touched.email ? getFieldError("Email", formData.email) : "",
-      floor: touched.floor ? getFieldError("Floor", formData.floor) : "",
-      room_number: touched.room_number ? getFieldError("Room Number", formData.room_number) : "",
-      password: touched.password ? getFieldError("Password", formData.password) : "",
-      confirmPassword: touched.confirmPassword ? getFieldError("Confirm Password", formData.confirmPassword, formData.password) : "",
-    });
-  }, [formData, touched]);
+  const passwordMismatch = formData.confirmPassword.length > 0 && formData.confirmPassword !== formData.password;
 
-  const strength = getStrength(formData.password);
+  const isFormValid =
+    formData.registration_code.trim() &&
+    formData.full_name.trim() &&
+    formData.username.trim() &&
+    formData.email.trim() &&
+    formData.floor.trim() &&
+    formData.room.trim() &&
+    formData.password.trim() &&
+    formData.confirmPassword.trim() &&
+    !passwordMismatch;
 
-  const mutation = useMutation({
-    mutationFn: (data: any) => {
-      const combinedRoom = `${data.floor} - Room ${data.room_number}`;
-      return authAPI.register({
-        registration_code: data.registration_code,
-        username: data.username,
-        email: data.email,
-        full_name: data.full_name,
-        password: data.password,
-        room: combinedRoom || "General",
-      });
-    },
-    onSuccess: (res) => {
-      toast.success("Registration successful!", {
-        description: "You can now sign in with your credentials.",
-      });
-
-      // Redirect to login
-      navigate("/login", { replace: true });
-    },
-    onError: (error: any) => {
-      const message: string = error.message || "";
-
-      if (message.includes("Registration code is required")) {
-        setCodeError("Please enter the registration code.");
-      } else if (message.includes("Invalid registration code")) {
-        setCodeError("Invalid registration code. Please contact your administrator.");
-      } else {
-        setCodeError("");
-        toast.error("Registration failed", {
-          description: message || "An error occurred during registration.",
-        });
-      }
-    },
-  });
+  // Room options by floor
+  const roomsByFloor: { [key: string]: string[] } = {
+    "1": ["101", "102", "103"],
+    "2": ["201", "202", "203"],
+    "3": ["301", "302"],
+  };
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    setTouched(prev => ({ ...prev, [field]: true }));
-    if (field === "registration_code") setCodeError("");
+    if (field === "floor") {
+      // Reset room when floor changes
+      setFormData((prev) => ({ ...prev, [field]: value, room: "" }));
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    }
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+    if (error) setError("");
   };
 
-  // Combine floor and room before submitting
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Registration code — inline validation before hitting the API
-    if (!formData.registration_code.trim()) {
-      setCodeError("Registration code is required.");
-      return;
-    }
-
-    if (!formData.username || !formData.email || !formData.full_name || !formData.password || !formData.floor || !formData.room_number) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
     if (formData.password !== formData.confirmPassword) {
-      toast.error("Passwords do not match");
+      setFieldErrors({ confirmPassword: "Passwords do not match." });
       return;
     }
 
-    if (formData.password.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
+    setIsLoading(true);
+    setError("");
+    setFieldErrors({});
 
-    setCodeError("");
-    mutation.mutate(formData);
+    try {
+      await authAPI.register({
+        registration_code: formData.registration_code,
+        full_name: formData.full_name,
+        username: formData.username,
+        email: formData.email,
+        room: formData.room,
+        password: formData.password,
+      });
+
+      setSuccess(true);
+      setTimeout(() => navigate("/login"), 1500);
+    } catch (err: any) {
+      const errorMsg = err.message || "Registration failed.";
+      if (errorMsg.toLowerCase().includes("registration code")) {
+        setFieldErrors({ registration_code: errorMsg });
+      } else if (errorMsg.toLowerCase().includes("username")) {
+        setFieldErrors({ username: errorMsg });
+      } else if (errorMsg.toLowerCase().includes("email")) {
+        setFieldErrors({ email: errorMsg });
+      } else {
+        setError(errorMsg);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const isFormValid = !getFieldError("Full Name", formData.full_name) &&
-                      !getFieldError("Username", formData.username) &&
-                      !getFieldError("Email", formData.email) &&
-                      !getFieldError("Floor", formData.floor) &&
-                      !getFieldError("Room Number", formData.room_number) &&
-                      !getFieldError("Password", formData.password) &&
-                      formData.password === formData.confirmPassword;
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && isFormValid && !isLoading) {
+      handleSubmit(e as any);
+    }
+  };
 
-  const inputGlowClasses = "bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40 focus:ring-2 focus:ring-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)] transition-all duration-300";
+  // Success State
+  if (success) {
+    return (
+      <div className="min-h-screen flex overflow-hidden bg-[#f8f3f0]">
+        {/* LEFT PANEL — Brand Panel (hidden on mobile) */}
+        <div className="hidden lg:flex lg:w-[45%] relative overflow-hidden flex-col justify-between p-12 bg-gradient-to-br from-[#800000] via-[#5a0000] to-[#3a0000]">
+<div className="absolute w-72 h-72 bg-[#FFD700] rounded-full opacity-[0.07] -top-20 -right-20 pointer-events-none" />
+        <div className="absolute w-48 h-48 bg-[#FFD700] rounded-full opacity-[0.05] -bottom-10 -left-10 pointer-events-none" />
+        <div className="absolute w-32 h-32 bg-white rounded-full opacity-[0.04] top-1/2 -right-16 pointer-events-none" />
 
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#600000] via-[#4a0000] to-[#0a0f1e]">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 border border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.1)] mb-4">
-            <UserPlus className="w-8 h-8 text-white" />
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-11 h-11 rounded-full bg-[#FFD700] flex items-center justify-center flex-shrink-0">
+              <span className="text-sm font-semibold text-[#800000]">PD</span>
+            </div>
+            <div>
+              <p className="text-white font-medium text-base">PUP Deliver</p>
+              <p className="text-[#FFD700]/70 text-xs">Autonomous Robot Delivery</p>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-md">Robot Monitoring</h1>
-          <p className="text-slate-300">Create your account</p>
+
+          <div className="flex flex-col items-start relative z-10">
+            <div className="w-40 h-40 rounded-full border-[1.5px] border-[rgba(255,215,0,0.2)] bg-[rgba(255,215,0,0.08)] flex items-center justify-center mb-7">
+              <Bot size={64} strokeWidth={1.5} color="#FFD700" opacity={0.9} />
+            </div>
+            <h2 className="text-white text-2xl font-medium leading-snug">
+              Delivering smarter,<br />one robot at a time.
+            </h2>
+            <p className="text-white/55 text-sm leading-relaxed mt-3 max-w-xs">
+              Autonomous robot delivery system for Institute Technology (ITECH) - Polytechnic University of the Philippines.
+            </p>
+          </div>
+          <p className="text-white/25 text-xs relative z-10">© 2025 PUP Deliver · All rights reserved</p>
         </div>
 
-        <Card className="p-6 bg-black/40 backdrop-blur-md border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.3)]">
-          <form onSubmit={handleSubmit} className="space-y-4">
-<<<<<<< HEAD
+        {/* RIGHT PANEL — Form Panel */}
+        <div className="w-full lg:w-[55%] bg-white flex items-center justify-center p-6 lg:p-16 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-[rgba(255,215,0,0.06)] to-transparent rounded-full pointer-events-none" />
 
-            {/* Registration Code — FIRST field */}
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              className="space-y-2"
-            >
-              <Label htmlFor="registration_code" className="text-sm font-medium text-slate-200">
-                <div className="flex items-center gap-2">
-                  <KeyRound className="h-4 w-4 text-primary/70" />
-                  Registration Code *
-                </div>
-              </Label>
-              <Input
-                id="registration_code"
-                type="password"
-                placeholder="Enter the code provided by your administrator"
-                value={formData.registration_code}
-                onChange={(e) => handleChange("registration_code", e.target.value)}
-                disabled={mutation.isPending}
-                className={`bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-primary ${codeError ? "border-red-500 focus:border-red-500" : ""}`}
-              />
-              {codeError && (
-                <p className="text-xs text-red-400 mt-1">{codeError}</p>
+          <div className="w-full max-w-md relative z-10 flex flex-col items-center justify-center text-center">
+            <div className="w-20 h-20 rounded-full bg-green-50 border border-green-200 flex items-center justify-center mb-6">
+              <CheckCircle2 size={36} className="text-green-500" />
+            </div>
+            <h2 className="text-xl font-medium text-gray-900 mb-2">Account created!</h2>
+            <p className="text-gray-500 text-sm mb-4">Redirecting you to the login page...</p>
+            <Loader2 size={20} className="animate-spin text-[#800000]" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex overflow-hidden bg-[#f8f3f0]" onKeyDown={handleKeyDown}>
+      {/* LEFT PANEL — Brand Panel */}
+      <div className="hidden lg:flex lg:w-[45%] relative overflow-hidden flex-col justify-between p-12 bg-gradient-to-br from-[#800000] via-[#5a0000] to-[#3a0000]">
+        <div className="absolute w-72 h-72 bg-[#FFD700] rounded-full opacity-[0.07] -top-20 -right-20 pointer-events-none" />
+        <div className="absolute w-48 h-48 bg-[#FFD700] rounded-full opacity-[0.05] -bottom-10 -left-10 pointer-events-none" />
+        <div className="absolute w-32 h-32 bg-white rounded-full opacity-[0.04] top-1/2 -right-16 pointer-events-none" />
+
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="w-11 h-11 rounded-full bg-[#FFD700] flex items-center justify-center flex-shrink-0">
+            <span className="text-sm font-semibold text-[#800000]">PD</span>
+          </div>
+          <div>
+            <p className="text-white font-medium text-base">PUP Deliver</p>
+            <p className="text-[#FFD700]/70 text-xs">Autonomous Robot Delivery</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-start relative z-10">
+          <div className="w-40 h-40 rounded-full border-[1.5px] border-[rgba(255,215,0,0.2)] bg-[rgba(255,215,0,0.08)] flex items-center justify-center mb-7">
+            <Bot size={64} strokeWidth={1.5} color="#FFD700" opacity={0.9} />
+          </div>
+          <h2 className="text-white text-2xl font-medium leading-snug">
+            Delivering smarter,<br />one robot at a time.
+          </h2>
+          <p className="text-white/55 text-sm leading-relaxed mt-3 max-w-xs">
+            Autonomous robot delivery system for Institute Technology (ITECH) - Polytechnic University of the Philippines.
+          </p>
+        </div>
+
+        <p className="text-white/25 text-xs relative z-10">© 2026 PUP Deliver · All rights reserved</p>
+      </div>
+
+      {/* RIGHT PANEL — Form Panel */}
+      <div className="w-full lg:w-[55%] bg-white flex items-center justify-center p-4 lg:p-12 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-[rgba(255,215,0,0.06)] to-transparent rounded-full pointer-events-none" />
+
+        <div className="w-full max-w-md relative z-10 overflow-y-auto max-h-screen">
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex flex-col items-center mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-9 h-9 rounded-full bg-[#FFD700] flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-semibold text-[#800000]">PD</span>
+              </div>
+              <div>
+                <p className="text-[#800000] font-medium text-sm">PUP Deliver</p>
+                <p className="text-[#800000]/60 text-xs">Autonomous Robot Delivery</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Form Header */}
+          <div className="mb-4">
+            <p className="text-[#800000] text-xs font-medium uppercase tracking-widest mb-1">Get started</p>
+            <h1 className="text-gray-900 text-xl font-medium mb-1">Create your account</h1>
+            <p className="text-gray-500 text-xs">Fill in your details to join PUP Deliver</p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-2">
+            {/* Registration Code */}
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Registration Code</label>
+              <div className={`flex items-center gap-3 border rounded-xl px-4 py-2.5 bg-gray-50 focus-within:border-[#800000] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#800000]/10 transition-all ${fieldErrors.registration_code ? "border-red-400 bg-red-50" : "border-gray-200"}`}>
+                <KeyRound size={16} className="text-gray-400 flex-shrink-0" />
+                <input
+                  type={showCode ? "text" : "password"}
+                  autoComplete="off"
+                  placeholder="Enter the code from your administrator"
+                  value={formData.registration_code}
+                  onChange={(e) => handleChange("registration_code", e.target.value)}
+                  disabled={isLoading}
+                  className="flex-1 bg-transparent text-sm outline-none placeholder-gray-400 disabled:opacity-50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCode(!showCode)}
+                  disabled={isLoading}
+                  className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                >
+                  {showCode ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {fieldErrors.registration_code && (
+                <p className="text-red-600 text-xs mt-0.5">{fieldErrors.registration_code}</p>
               )}
-            </motion.div>
-
-            {/* Full Name */}
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 }}
-              className="space-y-2"
-            >
-              <Label htmlFor="full_name" className="text-sm font-medium text-slate-200">
-                Full Name *
-              </Label>
-=======
-            
-            {/* Full Name */}
-            <div className="space-y-1">
-              <Label className="text-white/90">Full Name *</Label>
->>>>>>> origin/stephen-side
-              <Input
-                placeholder="Juan Dela Cruz"
-                value={formData.full_name}
-                onChange={(e) => handleChange("full_name", e.target.value)}
-                className={inputGlowClasses}
-              />
-              <FieldError message={errors.full_name} />
             </div>
 
-            {/* Username */}
-<<<<<<< HEAD
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="space-y-2"
-            >
-              <Label htmlFor="username" className="text-sm font-medium text-slate-200">
-                Username *
-              </Label>
-=======
-            <div className="space-y-1">
-              <Label className="text-white/90">Username *</Label>
->>>>>>> origin/stephen-side
-              <Input
-                placeholder="jdelacruz"
-                value={formData.username}
-                onChange={(e) => handleChange("username", e.target.value)}
-                className={inputGlowClasses}
-              />
-              <FieldError message={errors.username} />
+            {/* Full Name & Username */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Full Name</label>
+                <div className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50 focus-within:border-[#800000] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#800000]/10 transition-all">
+                  <User size={16} className="text-gray-400 flex-shrink-0" />
+                  <input
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Juan Dela Cruz"
+                    value={formData.full_name}
+                    onChange={(e) => handleChange("full_name", e.target.value)}
+                    disabled={isLoading}
+                    className="flex-1 bg-transparent text-sm outline-none placeholder-gray-400 disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Username</label>
+                <div className={`flex items-center gap-3 border rounded-xl px-4 py-2.5 bg-gray-50 focus-within:border-[#800000] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#800000]/10 transition-all ${fieldErrors.username ? "border-red-400 bg-red-50" : "border-gray-200"}`}>
+                  <AtSign size={16} className="text-gray-400 flex-shrink-0" />
+                  <input
+                    type="text"
+                    autoComplete="username"
+                    placeholder="juandc"
+                    value={formData.username}
+                    onChange={(e) => handleChange("username", e.target.value)}
+                    disabled={isLoading}
+                    className="flex-1 bg-transparent text-sm outline-none placeholder-gray-400 disabled:opacity-50"
+                  />
+                </div>
+                {fieldErrors.username && (
+                  <p className="text-red-600 text-xs mt-0.5">{fieldErrors.username}</p>
+                )}
+              </div>
             </div>
 
             {/* Email */}
-<<<<<<< HEAD
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.25 }}
-              className="space-y-2"
-            >
-              <Label htmlFor="email" className="text-sm font-medium text-slate-200">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-primary/70" />
-                  Email *
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-64 text-xs">
-                      <p>Use your institutional email for account verification</p>
-                    </HoverCardContent>
-                  </HoverCard>
-                </div>
-=======
-            <div className="space-y-1">
-              <Label className="text-white/90 flex items-center gap-2">
-                <Mail className="h-4 w-4 text-white/70" /> Email *
->>>>>>> origin/stephen-side
-              </Label>
-              <Input
-                type="email"
-                placeholder="jdelacruz@pup.edu.ph"
-                value={formData.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                className={inputGlowClasses}
-              />
-              <FieldError message={errors.email} />
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Email</label>
+              <div className={`flex items-center gap-3 border rounded-xl px-4 py-2.5 bg-gray-50 focus-within:border-[#800000] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#800000]/10 transition-all ${fieldErrors.email ? "border-red-400 bg-red-50" : "border-gray-200"}`}>
+                <Mail size={16} className="text-gray-400 flex-shrink-0" />
+                <input
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  disabled={isLoading}
+                  className="flex-1 bg-transparent text-sm outline-none placeholder-gray-400 disabled:opacity-50"
+                />
+              </div>
+              {fieldErrors.email && (
+                <p className="text-red-600 text-xs mt-0.5">{fieldErrors.email}</p>
+              )}
             </div>
-
-<<<<<<< HEAD
-            {/* Room/Department */}
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="space-y-2"
-            >
-              <Label htmlFor="room" className="text-sm font-medium text-slate-200">
-                Department/Room (Optional)
-              </Label>
-              <Input
-                id="room"
-                type="text"
-                placeholder="CCIS, Main Building, etc."
-                value={formData.room}
-                onChange={(e) => handleChange("room", e.target.value)}
-                disabled={mutation.isPending}
-                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-primary"
-              />
-            </motion.div>
-
-            {/* Password */}
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.35 }}
-              className="space-y-2"
-            >
-              <Label htmlFor="password" className="text-sm font-medium text-slate-200">
-                <div className="flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-primary/70" />
-                  Password (min. 6 chars) *
-                </div>
-=======
-            {/* === BAGONG FLOOR AT ROOM DROPDOWNS === */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Floor */}
-              <div className="space-y-1">
-                <Label className="text-white/90">Floors *</Label>
-                <Select 
-                  onValueChange={(val) => handleChange("floor", val)} 
-                  value={formData.floor}
-                >
-                  <SelectTrigger className={inputGlowClasses}>
-                    <SelectValue placeholder="Select Floor" />
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Floor</label>
+                <Select value={formData.floor} onValueChange={(value) => handleChange("floor", value)} disabled={isLoading}>
+                  <SelectTrigger className={`bg-gray-50 border-gray-200 focus:border-[#800000] focus:ring-[#800000]/10 py-2.5 text-sm ${formData.floor && "text-gray-900"}`}>
+                    <SelectValue placeholder="Select floor" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1a0000] border-white/10 text-white">
-                    <SelectItem value="1st Floor">1st Floor</SelectItem>
-                    <SelectItem value="2nd Floor">2nd Floor</SelectItem>
-                    <SelectItem value="3rd Floor">3rd Floor</SelectItem>
+                  <SelectContent>
+                    <SelectItem value="1">1st Floor</SelectItem>
+                    <SelectItem value="2">2nd Floor</SelectItem>
+                    <SelectItem value="3">3rd Floor</SelectItem>
                   </SelectContent>
                 </Select>
-                <FieldError message={errors.floor} />
               </div>
 
-              {/* Room Number */}
-              <div className="space-y-1">
-                <Label className="text-white/90">Room Number *</Label>
-                <Select 
-                  onValueChange={(val) => handleChange("room_number", val)} 
-                  value={formData.room_number}
-                >
-                  <SelectTrigger className={inputGlowClasses}>
-                    <SelectValue placeholder="Select Room" />
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Room Number</label>
+                <Select value={formData.room} onValueChange={(value) => handleChange("room", value)} disabled={isLoading || !formData.floor}>
+                  <SelectTrigger className={`bg-gray-50 border-gray-200 focus:border-[#800000] focus:ring-[#800000]/10 py-2.5 text-sm ${formData.room && "text-gray-900"}`}>
+                    <SelectValue placeholder={formData.floor ? "Select room" : "Select floor first"} />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#1a0000] border-white/10 text-white">
-                    <SelectItem value="101">Room 101</SelectItem>
-                    <SelectItem value="102">Room 102</SelectItem>
-                    <SelectItem value="201">Room 201</SelectItem>
-                    <SelectItem value="202">Room 202</SelectItem>
-                    <SelectItem value="CCIS Lab">CCIS Lab</SelectItem>
-                    <SelectItem value="Admin Office">Admin Office</SelectItem>
+                  <SelectContent>
+                    {formData.floor && roomsByFloor[formData.floor]?.map((roomNum) => (
+                      <SelectItem key={roomNum} value={roomNum}>
+                        Room {roomNum}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                <FieldError message={errors.room_number} />
               </div>
             </div>
 
             {/* Password */}
-            <div className="space-y-1">
-              <Label className="text-white/90 flex items-center gap-2">
-                <Lock className="h-4 w-4 text-white/70" /> Password *
->>>>>>> origin/stephen-side
-              </Label>
-              <div className="relative">
-                <Input
-                  type={showPass ? "text" : "password"}
-                  placeholder="Min. 6 characters"
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Password</label>
+              <div className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50 focus-within:border-[#800000] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#800000]/10 transition-all">
+                <Lock size={16} className="text-gray-400 flex-shrink-0" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="Create a strong password"
                   value={formData.password}
                   onChange={(e) => handleChange("password", e.target.value)}
-                  className={inputGlowClasses}
+                  disabled={isLoading}
+                  className="flex-1 bg-transparent text-sm outline-none placeholder-gray-400 disabled:opacity-50"
                 />
-                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors">
-                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
+                  className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              {formData.password && (
-                <div className="flex gap-1 mt-2">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i < strength ? (strength <= 2 ? 'bg-orange-500' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]') : 'bg-white/10'}`} />
-                  ))}
-                </div>
-              )}
-              <FieldError message={errors.password} />
             </div>
 
             {/* Confirm Password */}
-<<<<<<< HEAD
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              className="space-y-2"
-            >
-              <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-200">
-                <div className="flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-primary/70" />
-                  Confirm Password *
-                </div>
-=======
-            <div className="space-y-1">
-              <Label className="text-white/90 flex items-center gap-2">
-                <Lock className="h-4 w-4 text-white/70" /> Confirm Password *
->>>>>>> origin/stephen-side
-              </Label>
-              <div className="relative">
-                <Input
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Confirm Password</label>
+              <div className={`flex items-center gap-3 border rounded-xl px-4 py-2.5 bg-gray-50 focus-within:border-[#800000] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#800000]/10 transition-all ${passwordMismatch || fieldErrors.confirmPassword ? "border-red-400 bg-red-50" : "border-gray-200"}`}>
+                <Lock size={16} className="text-gray-400 flex-shrink-0" />
+                <input
                   type={showConfirm ? "text" : "password"}
+                  autoComplete="new-password"
                   placeholder="Repeat your password"
                   value={formData.confirmPassword}
                   onChange={(e) => handleChange("confirmPassword", e.target.value)}
-                  className={inputGlowClasses}
+                  disabled={isLoading}
+                  className="flex-1 bg-transparent text-sm outline-none placeholder-gray-400 disabled:opacity-50"
                 />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  disabled={isLoading}
+                  className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                >
                   {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <FieldError message={errors.confirmPassword} />
+              {(passwordMismatch || fieldErrors.confirmPassword) && (
+                <p className="text-red-600 text-xs mt-0.5">{fieldErrors.confirmPassword || "Passwords do not match."}</p>
+              )}
             </div>
 
-<<<<<<< HEAD
             {/* Submit Button */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.45 }}
-              className="pt-2"
+            <button
+              type="submit"
+              disabled={isLoading || !isFormValid}
+              className="w-full bg-[#800000] hover:bg-[#660000] disabled:opacity-60 disabled:cursor-not-allowed text-[#FFD700] py-3 rounded-xl text-sm font-medium tracking-wide transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 mt-3"
             >
-              <Button
-                type="submit"
-                disabled={mutation.isPending}
-                className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
+              {isLoading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Creating account...</span>
+                </>
+              ) : (
+                "Create my account"
+              )}
+            </button>
+
+            {/* Error Message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-xl"
               >
-                {mutation.isPending ? "Creating account..." : "Create Account"}
-              </Button>
-            </motion.div>
-          </form>
+                <AlertCircle size={16} className="text-red-500 flex-shrink-0" />
+                <p className="text-red-600 text-sm">{error}</p>
+              </motion.div>
+            )}
 
-          {/* Sign In Link */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.55, duration: 0.5 }}
-            className="mt-6 pt-6 border-t border-slate-700 text-center"
-          >
-            <p className="text-sm text-slate-400">
-=======
-            <Button type="submit" disabled={mutation.isPending || !isFormValid} className="w-full bg-[#800000] hover:bg-[#a00000] text-white font-bold mt-2 shadow-[0_0_15px_rgba(128,0,0,0.4)] border border-white/10 transition-all duration-300 hover:shadow-[0_0_20px_rgba(128,0,0,0.6)]">
-              {mutation.isPending ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : "Create Account"}
-            </Button>
-          </form>
+            {/* Divider */}
+            <div className="flex items-center gap-3 my-2">
+              <hr className="flex-1 border-t border-gray-200" />
+              <span className="text-gray-400 text-xs">or</span>
+              <hr className="flex-1 border-t border-gray-200" />
+            </div>
 
-          <div className="mt-6 pt-6 border-t border-white/10 text-center">
-            <p className="text-sm text-slate-300">
->>>>>>> origin/stephen-side
+            {/* Login Link */}
+            <p className="text-center text-xs text-gray-500">
               Already have an account?{" "}
-              <button onClick={() => navigate("/login")} className="text-white hover:underline font-medium transition-colors drop-shadow-sm">Sign In</button>
+              <Link to="/login" className="text-[#800000] font-medium hover:underline">
+                Sign in
+              </Link>
             </p>
+          </form>
+
+          {/* Security Badge */}
+          <div className="flex items-center justify-center gap-2 mt-3 pt-2 border-t border-gray-100">
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+            <p className="text-gray-400 text-xs">Secured · Local network access only</p>
           </div>
-        </Card>
-      </motion.div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -33,8 +33,8 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 export const authAPI = {
   register: (data: { registration_code: string; username: string; email: string; full_name: string; password: string; room?: string }) =>
     apiCall('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
-  login: (username: string, password: string) =>
-    apiCall('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
+  login: (emailOrUsername: string, password: string) =>
+    apiCall('/auth/login', { method: 'POST', body: JSON.stringify({ email: emailOrUsername, password }) }),
   getCurrentUser: () => apiCall('/auth/me'),
 };
 
@@ -61,8 +61,14 @@ export const deliveriesAPI = {
     recipient: string;
     pickup_location: string;
     dropoff_location: string;
+    recipient_user_id: number;
+    quantity?: number;
+    notes?: string;
   }) => apiCall('/deliveries/request', { method: 'POST', body: JSON.stringify(data) }),
-  getMyRequests: () => apiCall('/deliveries/my-requests'),  getById: (id: number) => apiCall(`/deliveries/${id}`),  confirmReceived: (deliveryId: number) => apiCall(`/deliveries/${deliveryId}/received`, { method: 'PUT', body: JSON.stringify({}) }),
+  getMyRequests: () => apiCall('/deliveries/my-requests'),
+  getMyInbox: () => apiCall('/deliveries/my-inbox'),
+  getById: (id: number) => apiCall(`/deliveries/${id}`),
+  confirmReceived: (deliveryId: number) => apiCall(`/deliveries/${deliveryId}/received`, { method: 'PUT', body: JSON.stringify({}) }),
   getAllDeliveries: () => apiCall('/deliveries/admin/all'), // Admin endpoint
   updateDelivery: (deliveryId: number, data: any) => apiCall(`/deliveries/admin/${deliveryId}`, { method: 'PUT', body: JSON.stringify(data) }), // Admin endpoint
   deleteDelivery: (deliveryId: number) => apiCall(`/deliveries/admin/${deliveryId}`, { method: 'DELETE' }), // Admin endpoint

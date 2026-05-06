@@ -12,6 +12,7 @@ import {
   BellOff,
 } from "lucide-react";
 import { useNotifications } from "@/context/NotificationContext";
+import { useTimeAgo } from "@/hooks/useTimeAgo";
 
 interface NotificationPanelProps {
   isOpen: boolean;
@@ -51,23 +52,9 @@ function getIconConfig(type: NotifType) {
   }
 }
 
-function formatRelativeTime(created_at: string): string {
-  const now = Date.now();
-  const then = new Date(created_at).getTime();
-  const diff = Math.floor((now - then) / 1000); // seconds
-
-  if (diff < 60) return "Just now";
-  if (diff < 3600) {
-    const m = Math.floor(diff / 60);
-    return `${m} min${m !== 1 ? "s" : ""} ago`;
-  }
-  if (diff < 86400) {
-    const h = Math.floor(diff / 3600);
-    return `${h} hr${h !== 1 ? "s" : ""} ago`;
-  }
-  if (diff < 172800) return "Yesterday";
-  const d = Math.floor(diff / 86400);
-  return `${d} days ago`;
+function NotificationTime({ timestamp }: { timestamp: string }) {
+  const relativeTime = useTimeAgo(timestamp);
+  return <>{relativeTime}</>;
 }
 
 const FILTERS = ["All", "Unread", "Action Required"];
@@ -213,7 +200,7 @@ export function NotificationPanel({
                     {n.message}
                   </p>
                   <p className="text-[11px] text-gray-400 mt-1">
-                    {formatRelativeTime(n.created_at)}
+                    <NotificationTime timestamp={n.created_at} />
                   </p>
                 </div>
 

@@ -1,14 +1,11 @@
-import { useState, useCallback, useEffect } from "react";
-import { CheckCircle, Bot, FileText, Package } from "lucide-react";
-import { useDelivery } from "@/lib/deliveryStore";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { CheckCircle, Bot, FileText, Package, Loader2, AlertCircle } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Delivery } from "@/lib/types";
 import { AppLayout } from "@/components/AppLayout";
 import { toast } from "@/components/ui/feedback/sonner";
-
-// ─── Simulated recipient ──────────────────────────────────────────────────────
-const RECIPIENT_ID = "usr-002";
-const RECIPIENT_NAME = "Maria Santos";
-const RECIPIENT_ROOM = "Room 301, Main Building";
+import { authAPI, deliveriesAPI } from "@/lib/api";
+import { useTimeAgo, formatTimestampStatic } from "@/hooks/useTimeAgo";
 
 // ─── Brand colors ─────────────────────────────────────────────────────────────
 const C = {
@@ -23,30 +20,6 @@ const URGENCY_COLOR: Record<string, string> = {
   normal: "#f59e0b",
   low: "#22c55e",
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function formatTimestamp(ts: string) {
-  try {
-    return new Intl.DateTimeFormat("en-PH", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(ts));
-  } catch {
-    return ts;
-  }
-}
-
-function timeAgo(ts: string): string {
-  const diffMs = Date.now() - new Date(ts).getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "just now";
-  if (mins === 1) return "1 min ago";
-  if (mins < 60) return `${mins} mins ago`;
-  const hrs = Math.floor(mins / 60);
-  return `${hrs} hr${hrs > 1 ? "s" : ""} ago`;
-}
 
 function getUrgency(arrivedAt: string): "high" | "normal" | "low" {
   const diffMinutes = (Date.now() - new Date(arrivedAt).getTime()) / 60000;
@@ -66,14 +39,13 @@ function ConfirmDialog({
   return (
     <div
       style={{
-        position: "absolute",
+        position: "fixed",
         inset: 0,
         zIndex: 50,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         background: "rgba(0,0,0,0.4)",
-        borderRadius: 12,
       }}
     >
       <div
@@ -161,6 +133,7 @@ function SidebarRow({
   onClick: () => void;
 }) {
   const urgency = getUrgency(delivery.arrivedAt ?? new Date().toISOString());
+  const relativeTime = useTimeAgo(delivery.arrivedAt);
 
   return (
     <div
@@ -267,23 +240,34 @@ function SidebarRow({
 
       {/* Time */}
       <div style={{ fontSize: 10, color: "#9ca3af", flexShrink: 0 }}>
-        {delivery.arrivedAt ? timeAgo(delivery.arrivedAt) : ""}
+        {delivery.arrivedAt ? relativeTime : ""}
       </div>
     </div>
   );
 }
 
 // ─── History Row ──────────────────────────────────────────────────────────────
-function HistoryRow({ delivery }: { delivery: Delivery }) {
+function HistoryRow({ delivery, isSelected, onClick }: { delivery: Delivery; isSelected: boolean; onClick: () => void }) {
   const isCompleted = delivery.status === "completed";
+  const relativeTime = useTimeAgo(delivery.completedAt ?? delivery.createdAt);
   return (
     <div
+      onClick={onClick}
       style={{
         display: "flex",
         alignItems: "flex-start",
         gap: 8,
         padding: "8px 14px",
         borderBottom: "0.5px solid #f3f4f6",
+        cursor: "pointer",
+        background: isSelected ? C.maroonBg : "#fff",
+        transition: "background 0.1s",
+      }}
+      onMouseEnter={(e) => {
+        if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = "#fafafa";
+      }}
+      onMouseLeave={(e) => {
+        if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = "#fff";
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -308,7 +292,7 @@ function HistoryRow({ delivery }: { delivery: Delivery }) {
           </span>
         </div>
         <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>
-          {formatTimestamp(delivery.completedAt ?? delivery.createdAt)}
+          {formatTimestampStatic(delivery.completedAt ?? delivery.createdAt)}
         </div>
       </div>
       <span
@@ -333,11 +317,35 @@ function HistoryRow({ delivery }: { delivery: Delivery }) {
 function DetailPanel({
   delivery,
   onConfirm,
+  confirmMutation,
 }: {
   delivery: Delivery;
   onConfirm: (id: string) => void;
+  confirmMutation: any;
 }) {
   const [showDialog, setShowDialog] = useState(false);
+  const isArrived = delivery.status === "arrived";
+  const isPending = delivery.status === "robot_assigned" || delivery.status === "pending_request";
+  const relativeTime = useTimeAgo(delivery.arrivedAt);
+
+  const getStatusDisplay = () => {
+    if (delivery.status === "pending_request") return "Pending Robot Assignment";
+    if (delivery.status === "robot_assigned") return "Robot Assigned";
+    if (isArrived) return "Robot Delivered";
+    return delivery.status;
+  };
+
+  const getStatusColor = () => {
+    if (isPending) return "#9ca3af";
+    if (isArrived) return C.gold;
+    return "#9ca3af";
+  };
+
+  const getStatusBgColor = () => {
+    if (isPending) return "#f3f4f6";
+    if (isArrived) return C.gold;
+    return "#f3f4f6";
+  };
 
   return (
     <div
@@ -382,14 +390,14 @@ function DetailPanel({
             gap: 5,
             padding: "3px 10px",
             borderRadius: 999,
-            background: C.gold,
-            color: C.maroon,
+            background: getStatusBgColor(),
+            color: getStatusColor(),
             fontSize: 10,
             fontWeight: 600,
           }}
         >
           <CheckCircle size={10} />
-          Robot Delivered
+          {getStatusDisplay()}
         </span>
       </div>
 
@@ -404,6 +412,29 @@ function DetailPanel({
           gap: 12,
         }}
       >
+        {/* Pending status notice */}
+        {isPending && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 8,
+              background: "#f0f9ff",
+              border: "0.5px solid #bae6fd",
+              borderRadius: 8,
+              padding: "10px 12px",
+            }}
+          >
+            <AlertCircle size={13} style={{ color: "#0284c7", flexShrink: 0, marginTop: 1 }} />
+            <div style={{ fontSize: 12, color: "#0c4a6e", lineHeight: 1.6 }}>
+              <p style={{ fontWeight: 600, marginBottom: 2 }}>Awaiting Robot Assignment</p>
+              <p>
+                This delivery request is pending. A robot will be assigned soon. You'll be notified when it arrives.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Sender block */}
         <div
           style={{
@@ -446,7 +477,7 @@ function DetailPanel({
             <div style={{ textAlign: "right", flexShrink: 0 }}>
               <p style={{ fontSize: 10, color: "#9ca3af" }}>Arrived</p>
               <p style={{ fontSize: 11, fontWeight: 500, color: "#374151" }}>
-                {timeAgo(delivery.arrivedAt)}
+                {relativeTime}
               </p>
             </div>
           )}
@@ -481,7 +512,6 @@ function DetailPanel({
           {[
             { label: "Item", value: delivery.item.name },
             { label: "Qty", value: String(delivery.item.qty) },
-            { label: "Weight", value: `${delivery.item.weight} kg` },
           ].map((row, i) => (
             <div
               key={row.label}
@@ -517,59 +547,64 @@ function DetailPanel({
           )}
         </div>
 
-        {/* Documents notice */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 8,
-            background: "#fffbeb",
-            border: "0.5px solid #fde68a",
-            borderRadius: 8,
-            padding: "10px 12px",
-          }}
-        >
-          <FileText size={13} style={{ color: "#d97706", flexShrink: 0, marginTop: 1 }} />
-          <div style={{ fontSize: 12, color: "#92400e", lineHeight: 1.6 }}>
-            <p style={{ fontWeight: 600, marginBottom: 2 }}>Check your delivery documents</p>
-            <p>
-              Please check the physical delivery documents received with this package before
-              confirming.
-            </p>
+        {/* Documents notice — only show for arrived deliveries */}
+        {isArrived && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 8,
+              background: "#fffbeb",
+              border: "0.5px solid #fde68a",
+              borderRadius: 8,
+              padding: "10px 12px",
+            }}
+          >
+            <FileText size={13} style={{ color: "#d97706", flexShrink: 0, marginTop: 1 }} />
+            <div style={{ fontSize: 12, color: "#92400e", lineHeight: 1.6 }}>
+              <p style={{ fontWeight: 600, marginBottom: 2 }}>Check your delivery documents</p>
+              <p>
+                Please check the physical delivery documents received with this package before
+                confirming.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Confirm button — sticky footer */}
-      <div
-        style={{
-          padding: "12px 20px",
-          borderTop: "0.5px solid #e5e7eb",
-          flexShrink: 0,
-        }}
-      >
-        <button
-          onClick={() => setShowDialog(true)}
+      {/* Confirm button — sticky footer — show for all active statuses */}
+      {(isArrived || isPending) && (
+        <div
           style={{
-            width: "100%",
-            padding: "12px 0",
-            borderRadius: 8,
-            border: "none",
-            background: C.maroon,
-            color: C.gold,
-            fontSize: 13,
-            fontWeight: 600,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            cursor: "pointer",
+            padding: "12px 20px",
+            borderTop: "0.5px solid #e5e7eb",
+            flexShrink: 0,
           }}
         >
-          <CheckCircle size={15} />
-          I have received this package
-        </button>
-      </div>
+          <button
+            onClick={() => setShowDialog(true)}
+            disabled={confirmMutation.isPending}
+            style={{
+              width: "100%",
+              padding: "12px 0",
+              borderRadius: 8,
+              border: "none",
+              background: confirmMutation.isPending ? "#d1d5db" : C.maroon,
+              color: confirmMutation.isPending ? "#9ca3af" : C.gold,
+              fontSize: 13,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              cursor: confirmMutation.isPending ? "not-allowed" : "pointer",
+            }}
+          >
+            <CheckCircle size={15} />
+            {confirmMutation.isPending ? "Confirming..." : "I have received this package"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -690,24 +725,124 @@ function UrgencyLegend() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function DeliveryInbox() {
-  const {
-    getActiveDeliveriesForRecipient,
-    getDeliveryHistoryForRecipient,
-    confirmReceipt,
-  } = useDelivery();
+  // Fetch current user
+  const { data: currentUser, isLoading: userLoading, error: userError } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: () => authAPI.getCurrentUser(),
+  });
 
-  const arrivedDeliveries = getActiveDeliveriesForRecipient(RECIPIENT_ID);
-  const historyDeliveries = getDeliveryHistoryForRecipient(RECIPIENT_ID).sort(
-    (a, b) =>
-      new Date(b.completedAt ?? b.createdAt).getTime() -
-      new Date(a.completedAt ?? a.createdAt).getTime()
-  );
+  // Fetch all deliveries
+  const { data: allDeliveries = [], isLoading: deliveriesLoading, refetch: refetchDeliveries } = useQuery({
+    queryKey: ["myInbox"],
+    queryFn: () => deliveriesAPI.getMyInbox(),
+    enabled: !!currentUser,
+  });
+
+  // Confirm receipt mutation
+  const confirmMutation = useMutation({
+    mutationFn: (deliveryId: number) => deliveriesAPI.confirmReceived(deliveryId),
+    onSuccess: () => {
+      toast.success("Receipt confirmed! Transaction complete.");
+      refetchDeliveries();
+      setSelected(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to confirm receipt");
+    },
+  });
+
+  // Filter deliveries: inbox = status "pending_request", "robot_assigned" or "arrived", history = completed or cancelled
+  const arrivedDeliveries = useMemo(() => (allDeliveries as any[])
+    .filter((d) => d.status === "pending_request" || d.status === "robot_assigned" || d.status === "arrived")
+    .map((d) => ({
+      id: d.id?.toString() || `DEL-${Math.random()}`,
+      sender: {
+        id: d.sender_id?.toString() || "unknown",
+        name: d.sender || "Unknown",
+        room: d.pickup_location || "Unknown Location",
+        building: "PUP Manila",
+        initials: (d.sender || "?").split(" ").map((s: string) => s[0]).join("").toUpperCase().slice(0, 2),
+        avatarColor: "#800000",
+      },
+      recipient: {
+        id: currentUser?.id?.toString() || "unknown",
+        name: currentUser?.full_name || "You",
+        room: currentUser?.room || "Unknown",
+        building: "PUP Manila",
+        initials: (currentUser?.full_name || "?").split(" ").map((s: string) => s[0]).join("").toUpperCase().slice(0, 2),
+        avatarColor: "#800000",
+      },
+      item: {
+        name: d.document_name || "Package",
+        qty: d.quantity || 1,
+        weight: 0,
+      },
+      senderNote: d.notes || "",
+      priority: "standard" as const,
+      fee: 0,
+      status: d.status,
+      robotId: d.robot_id?.toString() || "RBT-001",
+      robotName: `PUP-BOT Unit ${d.robot_id || 1}`,
+      createdAt: d.created_at || new Date().toISOString(),
+      arrivedAt: d.arrived_at || new Date().toISOString(),
+      completedAt: d.completed_at,
+      timeline: [
+        { status: "robot_assigned" as const, label: "Robot Assigned", timestamp: d.created_at || new Date().toISOString() },
+        ...(d.arrived_at ? [{ status: "arrived" as const, label: "Arrived", timestamp: d.arrived_at }] : []),
+      ],
+      estimatedArrival: "Arrived",
+      distance: "—",
+    })), [allDeliveries, currentUser]);
+
+  const historyDeliveries = useMemo(() => (allDeliveries as any[])
+    .filter((d) => d.status === "completed" || d.status === "cancelled")
+    .sort((a, b) => new Date(b.completed_at || b.created_at).getTime() - new Date(a.completed_at || a.created_at).getTime())
+    .map((d) => ({
+      id: d.id?.toString() || `DEL-${Math.random()}`,
+      sender: {
+        id: d.sender_id?.toString() || "unknown",
+        name: d.sender || "Unknown",
+        room: d.pickup_location || "Unknown Location",
+        building: "PUP Manila",
+        initials: (d.sender || "?").split(" ").map((s: string) => s[0]).join("").toUpperCase().slice(0, 2),
+        avatarColor: "#800000",
+      },
+      recipient: {
+        id: currentUser?.id?.toString() || "unknown",
+        name: currentUser?.full_name || "You",
+        room: currentUser?.room || "Unknown",
+        building: "PUP Manila",
+        initials: (currentUser?.full_name || "?").split(" ").map((s: string) => s[0]).join("").toUpperCase().slice(0, 2),
+        avatarColor: "#800000",
+      },
+      item: {
+        name: d.document_name || "Package",
+        qty: 1,
+        weight: 0,
+      },
+      senderNote: d.notes || "",
+      priority: "standard" as const,
+      fee: 0,
+      status: d.status,
+      robotId: d.robot_id?.toString() || "RBT-001",
+      robotName: `PUP-BOT Unit ${d.robot_id || 1}`,
+      createdAt: d.created_at || new Date().toISOString(),
+      arrivedAt: d.arrived_at || new Date().toISOString(),
+      completedAt: d.completed_at,
+      timeline: [
+        { status: "robot_assigned" as const, label: "Robot Assigned", timestamp: d.created_at || new Date().toISOString() },
+        ...(d.arrived_at ? [{ status: "arrived" as const, label: "Arrived", timestamp: d.arrived_at }] : []),
+        ...(d.completed_at ? [{ status: "completed" as const, label: "Completed", timestamp: d.completed_at }] : d.status === "cancelled" ? [{ status: "cancelled" as const, label: "Cancelled", timestamp: d.updated_at || d.created_at }] : []),
+      ],
+      estimatedArrival: d.status === "completed" ? "Delivered" : "Cancelled",
+      distance: "—",
+    })), [allDeliveries, currentUser]);
 
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Delivery | null>(null);
   const [activeTab, setActiveTab] = useState<"inbox" | "history">("inbox");
 
-  // Auto-select first on mount / when list changes
+  // Auto-select first on mount
   useEffect(() => {
     if (arrivedDeliveries.length > 0 && !selected) {
       setSelected(arrivedDeliveries[0]);
@@ -732,12 +867,10 @@ export default function DeliveryInbox() {
 
   const handleConfirm = useCallback(
     (id: string) => {
-      confirmReceipt(id);
-      toast.success("Receipt confirmed! Transaction complete.");
-      const remaining = arrivedDeliveries.filter((d) => d.id !== id);
-      setSelected(remaining.length > 0 ? remaining[0] : null);
+      const numId = parseInt(id.split("-")[1] || id, 10);
+      confirmMutation.mutate(numId);
     },
-    [confirmReceipt, arrivedDeliveries]
+    [confirmMutation]
   );
 
   const groupDefs: { key: "high" | "normal" | "low"; label: string }[] = [
@@ -745,6 +878,53 @@ export default function DeliveryInbox() {
     { key: "normal", label: "⏳ Soon — 20–60 minutes" },
     { key: "low", label: "🆕 New — under 20 minutes" },
   ];
+
+  // Loading state
+  if (userLoading || deliveriesLoading) {
+    return (
+      <AppLayout title="Delivery Inbox">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: 400,
+            gap: 10,
+          }}
+        >
+          <Loader2 className="animate-spin" size={20} style={{ color: C.maroon }} />
+          <span style={{ color: "#6b7280" }}>Loading your deliveries...</span>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Error state
+  if (userError) {
+    return (
+      <AppLayout title="Delivery Inbox">
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: 400,
+            gap: 8,
+            color: "#dc2626",
+          }}
+        >
+          <p style={{ fontSize: 14, fontWeight: 500 }}>Unable to load inbox</p>
+          <p style={{ fontSize: 12, color: "#9ca3af" }}>
+            {(userError as Error)?.message || "Please refresh and try again"}
+          </p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const recipientName = currentUser?.full_name || "User";
+  const recipientRoom = currentUser?.room || "Unknown Location";
 
   return (
     <AppLayout title="Delivery Inbox">
@@ -755,8 +935,8 @@ export default function DeliveryInbox() {
         </h2>
         <p style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
           Logged in as{" "}
-          <span style={{ fontWeight: 500, color: C.maroon }}>{RECIPIENT_NAME}</span>
-          {" "}— {RECIPIENT_ROOM}
+          <span style={{ fontWeight: 500, color: C.maroon }}>{recipientName}</span>
+          {" "}— {recipientRoom}
         </p>
       </div>
 
@@ -942,7 +1122,7 @@ export default function DeliveryInbox() {
                 No past deliveries yet.
               </div>
             ) : (
-              historyDeliveries.map((d) => <HistoryRow key={d.id} delivery={d} />)
+              historyDeliveries.map((d) => <HistoryRow key={d.id} delivery={d} isSelected={selected?.id === d.id} onClick={() => setSelected(d)} />)
             )}
           </div>
 
@@ -952,11 +1132,15 @@ export default function DeliveryInbox() {
 
         {/* ── RIGHT DETAIL PANEL ── */}
         {activeTab === "history" ? (
-          <NoSelectionPlaceholder />
+          selected ? (
+            <DetailPanel delivery={selected} onConfirm={handleConfirm} confirmMutation={confirmMutation} />
+          ) : (
+            <NoSelectionPlaceholder />
+          )
         ) : arrivedDeliveries.length === 0 ? (
           <EmptyInbox />
         ) : selected ? (
-          <DetailPanel delivery={selected} onConfirm={handleConfirm} />
+          <DetailPanel delivery={selected} onConfirm={handleConfirm} confirmMutation={confirmMutation} />
         ) : (
           <NoSelectionPlaceholder />
         )}

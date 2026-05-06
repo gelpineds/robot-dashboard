@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/feedback/toaster";
 import { TooltipProvider } from "@/components/ui/feedback/tooltip";
 import { DeliveryProvider } from "@/lib/deliveryStore";
 import { SidebarProvider } from "@/context/SidebarContext";
+import { UserProvider } from "@/context/UserProvider";
 import { NotificationProvider } from "@/context/NotificationContext";
 import Index from "./pages/Index.tsx";
 import RequestDelivery from "./pages/RequestDelivery.tsx";
@@ -31,28 +32,30 @@ const App = () => (
   <SidebarProvider>
     <QueryClientProvider client={queryClient}>
       <DeliveryProvider>
-        <NotificationProvider>          
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/" element={<ProtectedRoute element={<Index />} />} />
-              <Route path="/request" element={<ProtectedRoute element={<RequestDelivery />} />} />
-              <Route path="/track" element={<ProtectedRoute element={<TrackDelivery />} />} />
-              <Route path="/track/:deliveryId" element={<ProtectedRoute element={<TrackDelivery />} />} />
-              <Route path="/history" element={<ProtectedRoute element={<DeliveryHistory />} />} />
-              <Route path="/robots" element={<ProtectedRoute element={<RobotFleet />} />} />
-              <Route path="/documents" element={<ProtectedRoute element={<Documents />} />} />
-              <Route path="/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
-              <Route path="/notifications" element={<ProtectedRoute element={<Notifications />} />} />
-              <Route path="/delivery-inbox" element={<ProtectedRoute element={<DeliveryInbox />} />} />
-            </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </NotificationProvider>         
+        <UserProvider>
+          <NotificationProvider>          
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/" element={<ProtectedRoute element={<Index />} />} />
+                <Route path="/request" element={<ProtectedRoute element={<RequestDelivery />} />} />
+                <Route path="/track" element={<ProtectedRoute element={<TrackDelivery />} />} />
+                <Route path="/track/:deliveryId" element={<ProtectedRoute element={<TrackDelivery />} />} />
+                <Route path="/history" element={<ProtectedRoute element={<DeliveryHistory />} />} />
+                <Route path="/robots" element={<ProtectedRoute element={<RobotFleet />} />} />
+                <Route path="/documents" element={<ProtectedRoute element={<Documents />} />} />
+                <Route path="/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
+                <Route path="/notifications" element={<ProtectedRoute element={<Notifications />} />} />
+                <Route path="/delivery-inbox" element={<ProtectedRoute element={<DeliveryInbox />} />} />
+              </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </NotificationProvider>         
+        </UserProvider>
       </DeliveryProvider>
     </QueryClientProvider>
   </SidebarProvider>

@@ -6,10 +6,11 @@ import { DeliveryDetailsModal } from "@/components/DeliveryDetailsModal";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/utilities";
 import { Download, Search, Bot, ChevronLeft, ChevronRight, Loader, Info } from "lucide-react";
 import { deliveriesAPI, robotsAPI } from "@/lib/api";
+import { formatDateOnly } from "@/hooks/useTimeAgo";
 
 // ─── CSV export helper ────────────────────────────────────────────────────────
 function exportCSV(rows: HistoryRow[]) {
-  const headers = ["Order ID", "Customer", "Robot", "From", "To", "Date & Time", "Status"];
+  const headers = ["Delivery ID", "Sender", "Robot", "From", "To", "Date & Time", "Status"];
   const lines = [
     headers.join(","),
     ...rows.map((r) =>
@@ -73,8 +74,8 @@ export default function DeliveryHistory() {
     robot: d.robot_id ? `PUP-BOT Unit ${d.robot_id}` : 'Unassigned',
     from: d.pickup_location || 'Unknown',
     to: d.dropoff_location || 'Unknown',
-    datetime: new Date(d.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-    status: d.status === 'pending_request' ? 'Pending' : d.status === 'dispatched' ? 'In Transit' : d.status === 'arrived' ? 'In Transit' : d.status === 'received' ? 'Delivered' : d.status,
+    datetime: formatDateOnly(d.created_at),
+    status: d.status === 'pending_request' ? 'Pending' : d.status === 'robot_assigned' ? 'Pending' : d.status === 'dispatched' ? 'In Transit' : d.status === 'arrived' ? 'In Transit' : d.status === 'received' ? 'Delivered' : d.status,
   }));
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS

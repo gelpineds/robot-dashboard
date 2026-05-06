@@ -22,6 +22,9 @@ Flask-Bcrypt==1.0.1               # Bcrypt password hashing for secure user stor
 # Data Validation & Serialization
 marshmallow==3.21.2               # Object serialization/deserialization and validation
 
+# Admin Dashboard
+Flask-Admin==1.6.1                # Admin interface for CRUD operations
+
 # ============================================================================
 # TRANSITIVE DEPENDENCIES (Auto-installed with main packages)
 # ============================================================================

@@ -21,10 +21,10 @@ export function NotificationCard({
   const isActionRequired = n.is_action_required && !isRead;
 
   // Card border + bg style
-  let borderColor = "#800000";
+  let borderColor = "#FFFBEB";
   let cardBg = "#FFF5F5";
   if (isActionRequired) {
-    borderColor = "#FFD700";
+    borderColor = "#FFFBEB";
     cardBg = "#FFFBEB"; // amber-50
   }
   if (isRead) {
