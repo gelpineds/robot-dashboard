@@ -50,9 +50,9 @@ export default function Register() {
 
   // Room options by floor
   const roomsByFloor: { [key: string]: string[] } = {
-    "1": ["101", "102", "103"],
-    "2": ["201", "202", "203"],
-    "3": ["301", "302"],
+    "1": ["103", "104", "105"],
+    "2": ["206", "214"],
+    "3": ["Registrar", "Dean Office", "Library", "AVR"],
   };
 
   const handleChange = (field: string, value: string) => {
@@ -334,7 +334,7 @@ export default function Register() {
                   <SelectContent>
                     {formData.floor && roomsByFloor[formData.floor]?.map((roomNum) => (
                       <SelectItem key={roomNum} value={roomNum}>
-                        Room {roomNum}
+                        {roomNum}
                       </SelectItem>
                     ))}
                   </SelectContent>

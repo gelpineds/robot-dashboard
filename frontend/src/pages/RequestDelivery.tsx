@@ -22,10 +22,9 @@ const ROBOT_STATUS_STYLE: Record<string, { bg: string; color: string }> = {
 
 // ─── Floor → room map (preserved) ────────────────────────────────────────────
 const roomsByFloor: Record<string, string[]> = {
-  "1st Floor": ["101", "102", "103", "104", "118"],
-  "2nd Floor": ["201", "202", "203", "204", "205"],
-  "3rd Floor": ["301", "302", "303", "304", "307"],
-  "4th Floor": ["401", "402", "403", "404", "410"],
+  "1st Floor": ["103", "104", "105"],
+  "2nd Floor": ["206", "214"],
+  "3rd Floor": ["Registrar", "Dean Office", "Library", "AVR"],
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -195,7 +194,6 @@ export default function RequestDelivery() {
         "1": "1st Floor",
         "2": "2nd Floor",
         "3": "3rd Floor",
-        "4": "4th Floor",
       };
       const detectedFloor = floorMap[firstDigit];
 
