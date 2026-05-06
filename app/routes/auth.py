@@ -209,9 +209,48 @@ def admin_login():
 
 @auth_bp.get("/admin-login")
 def admin_login_page():
-    """Admin login page - redirects to frontend or returns basic form"""
-    from urllib.parse import urlencode
     next_url = request.args.get('next', '/admin/')
-    # Redirect to frontend login with admin mode and next parameter
-    frontend_url = f"http://localhost:3000/login?admin=true&next={urlencode({'next': next_url})}"
-    return redirect(frontend_url)
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Admin Login</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f0f0f0; }}
+            .box {{ background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 300px; }}
+            h2 {{ margin-top: 0; }}
+            input {{ width: 100%; padding: 8px; margin: 8px 0 16px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }}
+            button {{ width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }}
+            button:hover {{ background: #0056b3; }}
+            .error {{ color: red; font-size: 0.9rem; }}
+        </style>
+    </head>
+    <body>
+        <div class="box">
+            <h2>Robot Monitor Admin</h2>
+            <div id="error" class="error"></div>
+            <input id="username" type="text" placeholder="Username or Email" />
+            <input id="password" type="password" placeholder="Password" />
+            <button onclick="doLogin()">Login</button>
+        </div>
+        <script>
+            async function doLogin() {{
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const res = await fetch('/api/auth/admin-login', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    credentials: 'include',
+                    body: JSON.stringify({{ username, password }})
+                }});
+                const data = await res.json();
+                if (res.ok) {{
+                    window.location.href = '{next_url}';
+                }} else {{
+                    document.getElementById('error').textContent = data.error || 'Login failed';
+                }}
+            }}
+        </script>
+    </body>
+    </html>
+    """, 200

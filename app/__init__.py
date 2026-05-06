@@ -66,8 +66,8 @@ def create_app():
         return True
 
     @socketio.on('disconnect')
-    def handle_disconnect():
-        print("[SocketIO] Client disconnected")
+    def handle_disconnect(reason=None):  
+        print(f"[SocketIO] Client disconnected: {reason}")
 
     @socketio.on('authenticate')
     def handle_authenticate(data):
