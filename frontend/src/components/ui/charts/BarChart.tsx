@@ -7,9 +7,9 @@ interface BarChartProps {
     datasets: Array<{
       label: string;
       data: number[];
-      backgroundColor: string;
-      borderRadius: number;
-      borderSkipped: boolean;
+      backgroundColor: string | string[];
+      borderRadius: number | number[];
+      borderSkipped?: boolean | string | false;
     }>;
   };
   title?: string;

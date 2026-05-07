@@ -774,7 +774,7 @@ export default function DeliveryInbox() {
       },
       item: {
         name: d.document_name || "Package",
-        qty: d.quantity || 1,
+        qty: Number(d.quantity) || 1,
         weight: 0,
       },
       senderNote: d.notes || "",
@@ -817,7 +817,7 @@ export default function DeliveryInbox() {
       },
       item: {
         name: d.document_name || "Package",
-        qty: 1,
+        qty: Number(d.quantity) || 1,
         weight: 0,
       },
       senderNote: d.notes || "",
