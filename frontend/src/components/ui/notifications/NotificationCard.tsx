@@ -1,8 +1,37 @@
+// NotificationCard.tsx
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";          
 import { Trash2, ArrowRight, Check } from "lucide-react";
 import { Notification } from "@/context/NotificationContext";
 import { getIconConfig, formatTimestamp } from "./notificationHelpers";
 
+// ─── Local hook: ticks at the right cadence ────────────────────────────────
+function useLiveTimestamp(ts: string | undefined): string {
+  const [label, setLabel] = useState(() => formatTimestamp(ts ?? ""));
+
+  useEffect(() => {
+    if (!ts) return;
+
+    const update = () => setLabel(formatTimestamp(ts));
+    update(); // sync immediately
+
+    const diffMs = Date.now() - new Date(
+      ts.includes("Z") || ts.includes("+") ? ts : ts + "Z"
+    ).getTime();
+    const secs = Math.floor(diffMs / 1000);
+
+    // Tick every second if < 60 s old, every minute if < 1 h, else no interval
+    const ms = secs < 60 ? 1_000 : secs < 3600 ? 60_000 : null;
+    if (!ms) return;
+
+    const id = setInterval(update, ms);
+    return () => clearInterval(id);
+  }, [ts]);
+
+  return label;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 interface NotificationCardProps {
   notification: Notification;
   onDelete: (id: number) => void;
@@ -20,17 +49,12 @@ export function NotificationCard({
   const isRead = n.is_read;
   const isActionRequired = n.is_action_required && !isRead;
 
-  // Card border + bg style
-  let borderColor = "#FFFBEB";
+  const timeLabel = useLiveTimestamp(n.created_at ?? "");   // ← live label
+
+  let borderColor = "#FFF5F5";
   let cardBg = "#FFF5F5";
-  if (isActionRequired) {
-    borderColor = "#FFFBEB";
-    cardBg = "#FFFBEB"; // amber-50
-  }
-  if (isRead) {
-    borderColor = "transparent";
-    cardBg = "#FFFFFF";
-  }
+  if (isActionRequired) { borderColor = "#FFFBEB"; cardBg = "#FFFBEB"; }
+  if (isRead) { borderColor = "transparent"; cardBg = "#FFFFFF"; }
 
   return (
     <div
@@ -44,7 +68,6 @@ export function NotificationCard({
         borderLeftColor: borderColor,
       }}
     >
-      {/* Delete button */}
       <button
         onClick={() => onDelete(n.id)}
         className="absolute top-3 right-3 text-gray-300 hover:text-red-400 transition-colors"
@@ -53,7 +76,6 @@ export function NotificationCard({
         <Trash2 className="h-4 w-4" />
       </button>
 
-      {/* Icon circle */}
       <div
         className="shrink-0 flex items-center justify-center rounded-full"
         style={{ width: 48, height: 48, background: cfg.bg }}
@@ -61,13 +83,10 @@ export function NotificationCard({
         <Icon style={{ width: 22, height: 22, color: cfg.color }} />
       </div>
 
-      {/* Content */}
       <div className="flex-1 min-w-0 pr-6">
         <p className="text-base font-medium text-gray-900">{n.title}</p>
         <p className="text-sm text-gray-600 mt-0.5">{n.message}</p>
-        <p className="text-xs text-gray-400 mt-1.5">
-          {formatTimestamp(n.created_at ?? "")}
-        </p>
+        <p className="text-xs text-gray-400 mt-1.5">{timeLabel}</p>  {/* ← live */}
         {n.link && (
           <button
             onClick={() => navigate(n.link!)}
@@ -79,7 +98,6 @@ export function NotificationCard({
         )}
       </div>
 
-      {/* Right: action badge + mark as read / read indicator */}
       <div className="flex flex-col items-end gap-2 shrink-0 pt-0.5">
         {isActionRequired && (
           <span

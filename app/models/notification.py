@@ -46,6 +46,19 @@ class Notification(db.Model):
     user = db.relationship('User', backref=db.backref('notifications', lazy='dynamic'))
 
     def to_dict(self):
+        # Ensure created_at is timezone-aware (UTC)
+        created_at = self.created_at
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        
+        # Ensure read_at is timezone-aware (UTC) if set
+        read_at = None
+        if self.read_at:
+            read_at_dt = self.read_at
+            if read_at_dt.tzinfo is None:
+                read_at_dt = read_at_dt.replace(tzinfo=timezone.utc)
+            read_at = read_at_dt.isoformat()
+        
         return {
             'id': self.id,
             'user_id': self.user_id,
@@ -55,8 +68,8 @@ class Notification(db.Model):
             'link': self.link,
             'is_action_required': self.is_action_required,
             'is_read': self.is_read,
-            'created_at': self.created_at.isoformat(),
-            'read_at': self.read_at.isoformat() if self.read_at else None,
+            'created_at': created_at.isoformat(),
+            'read_at': read_at,
         }
 
     def __repr__(self):

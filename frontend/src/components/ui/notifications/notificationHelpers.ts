@@ -39,17 +39,40 @@ export function getIconConfig(type: string): IconConfig {
 }
 
 export function formatTimestamp(ts: string | Date): string {
-  const d = typeof ts === "string" ? new Date(ts) : ts;
+  let d: Date;
+  if (typeof ts === "string") {
+    d = new Date(
+      ts.includes("Z") || ts.includes("+") || /\d-\d{2}:\d{2}$/.test(ts)
+        ? ts
+        : ts + "Z"
+    );
+  } else {
+    d = ts;
+  }
   if (isNaN(d.getTime())) return String(ts);
-  return d
-    .toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    })
-    .replace(",", " ·")
-    .replace(" at", " ·");
+
+  const diffMs = Date.now() - d.getTime();
+  const secs = Math.floor(diffMs / 1000);
+
+  if (secs < 0) return "just now";
+  if (secs < 60) return `${secs} sec${secs !== 1 ? "s" : ""} ago`;
+
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins} min${mins !== 1 ? "s" : ""} ago`;
+
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr${hrs !== 1 ? "s" : ""} ago`;
+
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days} day${days !== 1 ? "s" : ""} ago`;
+
+  // Older than a month: show absolute date
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 }

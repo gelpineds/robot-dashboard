@@ -270,10 +270,10 @@ export default function Dashboard() {
 
         {/* ── Section 1: Stat Cards ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Robots"      value={totalRobots}    icon={Bot}     trend="+0 this semester" trendUp={false} />
-          <StatCard title="Total Deliveries"  value={totalDeliveries} icon={Package} trend="+0% this month"  trendUp={false} />
+          <StatCard title="Total Robots"      value={totalRobots}    icon={Bot} />
+          <StatCard title="Total Deliveries"  value={totalDeliveries} icon={Package} />
           <StatCard title="Active Deliveries" value={activeDeliveries}    icon={MapPin} />
-          <StatCard title="Completed"   value={completedCount}  icon={Users}   trend="+0 this week"     trendUp={false} />
+          <StatCard title="Completed"   value={completedCount}  icon={Users}  />
         </div>
 
         {/* ── Section 1b: Quick Action Card ── */}

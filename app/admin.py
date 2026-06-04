@@ -2,7 +2,6 @@ from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask import redirect, url_for, request, session
 from app.extensions import db
-from app.models import User, Robot, Delivery, Alert, Telemetry, Notification
 
 
 class AuthenticatedAdminIndexView(AdminIndexView):
@@ -82,11 +81,13 @@ class NotificationAdmin(ProtectedModelView):
 
 def init_admin(app):
     """Initialize Flask-Admin with all model views"""
+    # Import models inside function to avoid circular import issues
+    from app.models import User, Robot, Delivery, Alert, Telemetry, Notification
+
     admin = Admin(
         app,
         name='Robot Monitor',
-        index_view=AuthenticatedAdminIndexView(),
-        template_mode='bootstrap4'
+        index_view=AuthenticatedAdminIndexView()
     )
     
     # Add model views with unique endpoints to avoid conflicts

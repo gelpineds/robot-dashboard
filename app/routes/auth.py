@@ -2,8 +2,18 @@ from flask import Blueprint, request, current_app, session, redirect, url_for
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app.extensions import db, bcrypt
 from app.models.user import User
+from urllib.parse import urlparse
 
 auth_bp = Blueprint("auth", __name__)
+
+
+def _is_safe_redirect_url(url: str) -> bool:
+    """
+    Allow only relative paths (no scheme, no netloc).
+    Rejects open redirects like https://evil.com or //evil.com.
+    """
+    parsed = urlparse(url)
+    return not parsed.scheme and not parsed.netloc and url.startswith("/")
 
 
 @auth_bp.post("/register")
@@ -209,7 +219,14 @@ def admin_login():
 
 @auth_bp.get("/admin-login")
 def admin_login_page():
-    next_url = request.args.get('next', '/admin/')
+    raw_next = request.args.get("next", "/admin/")
+
+    # SECURITY: Validate next_url to prevent open redirect and reflected XSS.
+    # Only allow relative paths on this host; fall back to /admin/ otherwise.
+    next_url = raw_next if _is_safe_redirect_url(raw_next) else "/admin/"
+
+    # Pass next_url to JS via a data attribute, never by direct f-string
+    # interpolation into a script block, to prevent XSS injection.
     return f"""
     <!DOCTYPE html>
     <html>
@@ -226,7 +243,7 @@ def admin_login_page():
         </style>
     </head>
     <body>
-        <div class="box">
+        <div class="box" data-next="{next_url}">
             <h2>Robot Monitor Admin</h2>
             <div id="error" class="error"></div>
             <input id="username" type="text" placeholder="Username or Email" />
@@ -235,6 +252,9 @@ def admin_login_page():
         </div>
         <script>
             async function doLogin() {{
+                // Read the redirect target from the DOM, not from an inline JS string,
+                // so user-supplied input is never executed as code.
+                const nextUrl = document.querySelector('.box').dataset.next;
                 const username = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
                 const res = await fetch('/api/auth/admin-login', {{
@@ -245,7 +265,7 @@ def admin_login_page():
                 }});
                 const data = await res.json();
                 if (res.ok) {{
-                    window.location.href = '{next_url}';
+                    window.location.href = nextUrl;
                 }} else {{
                     document.getElementById('error').textContent = data.error || 'Login failed';
                 }}
