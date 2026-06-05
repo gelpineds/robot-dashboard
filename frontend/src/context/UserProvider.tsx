@@ -24,7 +24,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
           const userData = await authAPI.getCurrentUser();
           setUserData(userData);
         } catch (err) {
-          console.error('Failed to fetch user data:', err);
           // If we can't fetch user data, clear the token
           localStorage.removeItem('token');
         }

@@ -98,7 +98,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const data: Notification[] = responseData.notifications || [];
       setNotifications(data); // backend already sorted newest-first
     } catch (err) {
-      console.error("[NotificationContext] fetchNotifications:", err);
+      // Silently handle fetch error
     } finally {
       setIsLoading(false);
     }
@@ -123,7 +123,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       });
       if (!res.ok) throw new Error(`PATCH failed: ${res.status}`);
     } catch (err) {
-      console.error("[NotificationContext] markAsRead:", err);
       setNotifications(previous); // revert
     }
   };
@@ -145,7 +144,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       });
       if (!res.ok) throw new Error(`PATCH failed: ${res.status}`);
     } catch (err) {
-      console.error("[NotificationContext] markAllAsRead:", err);
       await fetchNotifications(); // refetch to restore true server state
     }
   };
@@ -165,7 +163,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       });
       if (!res.ok) throw new Error(`DELETE failed: ${res.status}`);
     } catch (err) {
-      console.error("[NotificationContext] deleteNotification:", err);
       setNotifications(previous); // revert
     }
   };
@@ -200,7 +197,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     });
 
     socket.on("connect_error", (err) => {
-      console.warn("[NotificationContext] Socket connect error:", err.message);
+      // Silently handle socket connection error
     });
 
     return () => {
@@ -228,7 +225,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           await fetchNotifications();
         }
       } catch (err) {
-        console.warn("[NotificationContext] Polling error:", err);
+        // Silently handle polling error
       }
     }, POLL_INTERVAL_MS);
 

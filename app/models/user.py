@@ -1,7 +1,6 @@
 from datetime import datetime
 from app.extensions import db
 
-
 class User(db.Model):
     __tablename__ = "users"
 
@@ -13,4 +12,6 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False, default="user")
     room = db.Column(db.String(50), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
+    is_verified = db.Column(db.Boolean, default=False)           
+    verification_token = db.Column(db.String(100), nullable=True) 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

@@ -59,3 +59,5 @@ MarkupSafe==3.0.2                 # String escaping
 wsproto==1.3.2                    # WebSocket protocol
 greenlet==3.3.2                   # Micro-threading
 h11==0.16.0                       # HTTP/1.1 protocol
+
+Flask-Mail==0.10.0                # Email support for Flask (for email verification)

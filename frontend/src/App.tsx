@@ -18,6 +18,7 @@ import Login from "./pages/Login.tsx";
 import Register from "./pages/Register.tsx";
 import Notifications from "./pages/Notifications.tsx";
 import DeliveryInbox from "./pages/DeliveryInbox.tsx";
+import VerifyEmail from "./pages/VerifyEmail.tsx";
 
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
                 <Route path="/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
                 <Route path="/notifications" element={<ProtectedRoute element={<Notifications />} />} />
                 <Route path="/delivery-inbox" element={<ProtectedRoute element={<DeliveryInbox />} />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
               </Routes>
               </BrowserRouter>
             </TooltipProvider>

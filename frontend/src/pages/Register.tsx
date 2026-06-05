@@ -1,3 +1,4 @@
+//Register.tsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock, User, AtSign, MapPin, Eye, EyeOff, Loader2, AlertCircle, Bot, CheckCircle2, KeyRound } from "lucide-react";
@@ -91,7 +92,7 @@ export default function Register() {
       });
 
       setSuccess(true);
-      setTimeout(() => navigate("/login"), 1500);
+      setTimeout(() => navigate("/login"), 4000);
     } catch (err: any) {
       const errorMsg = err.message || "Registration failed.";
       if (errorMsg.toLowerCase().includes("registration code")) {
@@ -157,7 +158,7 @@ export default function Register() {
               <CheckCircle2 size={36} className="text-green-500" />
             </div>
             <h2 className="text-xl font-medium text-gray-900 mb-2">Account created!</h2>
-            <p className="text-gray-500 text-sm mb-4">Redirecting you to the login page...</p>
+            <p className="text-gray-500 text-sm mb-4">Check your email for a verification link, then log in.</p>
             <Loader2 size={20} className="animate-spin text-[#800000]" />
           </div>
         </div>

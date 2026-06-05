@@ -54,15 +54,7 @@ export default function DeliveryHistory() {
     retry: 3,
   });
 
-  // Debug logging
-  useEffect(() => {
-    console.log('DeliveryHistory Debug:', {
-      backendDeliveries,
-      isLoading,
-      error: error?.message,
-      count: backendDeliveries?.length || 0
-    });
-  }, [backendDeliveries, isLoading, error]);
+
 
   // Build robot list
   const ROBOTS = ["All Robots", ...backendRobots.map((r: any) => r.name)];
@@ -106,7 +98,6 @@ export default function DeliveryHistory() {
   }
 
   if (error) {
-    console.error('Delivery History Error:', error);
     return (
       <AppLayout title="Delivery History">
         <div className="text-center text-destructive py-8">

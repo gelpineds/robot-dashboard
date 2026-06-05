@@ -125,7 +125,7 @@ export default function Login() {
                 <input
                   type="text"
                   autoComplete="email"
-                  placeholder="you@pup.edu.ph or username"
+                  placeholder="you@gmail.com or username"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
