@@ -1,6 +1,13 @@
 //api.ts
 // API service for communicating with Flask backend
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
+console.log("hostname =", window.location.hostname);
+console.log("VITE_API_BASE =", import.meta.env.VITE_API_BASE);
+
+const API_BASE =
+  import.meta.env.VITE_API_BASE ||
+  `${window.location.protocol}//${window.location.hostname}:5000/api`;
+
+console.log("API_BASE =", API_BASE);
 
 // Get token from localStorage
 const getAuthToken = () => localStorage.getItem('token');
