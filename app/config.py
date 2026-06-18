@@ -5,7 +5,8 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
-    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret")
+    # Ensure a reasonably long default dev JWT secret to avoid InsecureKeyLengthWarning
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-please-change-xxxxxxxxxxxxxxxx")
     JWT_ALGORITHM = "HS256"
     JWT_ACCESS_TOKEN_EXPIRES = 86400
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///robot_monitoring.db")

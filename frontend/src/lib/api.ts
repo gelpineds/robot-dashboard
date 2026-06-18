@@ -32,7 +32,7 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export const authAPI = {
-  register: (data: { registration_code: string; username: string; email: string; full_name: string; password: string; room?: string }) =>
+  register: (data: { registration_code: string; username: string; email: string; full_name: string; password: string; floor: string; room: string }) =>
     apiCall('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   login: (emailOrUsername: string, password: string) =>
     apiCall('/auth/login', { method: 'POST', body: JSON.stringify({ email: emailOrUsername, password }) }),
@@ -44,6 +44,8 @@ export const usersAPI = {
   getAll: () => apiCall('/users'),
   getById: (id: number) => apiCall(`/users/${id}`),
   search: (query: string) => apiCall(`/users/search?q=${encodeURIComponent(query)}`),
+  update: (id: number, data: any) => apiCall(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: number) => apiCall(`/users/${id}`, { method: 'DELETE' }),
 };
 
 // ─── Robots ────────────────────────────────────────────────────────────────────

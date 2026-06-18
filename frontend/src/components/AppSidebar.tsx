@@ -8,6 +8,7 @@ import {
   Inbox,
   FileText,
   Settings,
+  Shield,
   LogOut,
 } from 'lucide-react'
 import { NavLink } from '@/components/NavLink'
@@ -21,6 +22,7 @@ const navItems = [
   { icon: PlusCircle,      label: 'Request Delivery', to: '/request'                    },
   { icon: Inbox,           label: 'Delivery Inbox',   to: '/delivery-inbox'             },
   { icon: FileText,        label: 'Documents',        to: '/documents'                  },
+  { icon: Shield,         label: 'Admin Panel',      to: '/admin'                      },
   { icon: Settings,        label: 'Settings',         to: '/settings'                   },
 ]
 
@@ -57,26 +59,6 @@ export function AppSidebar() {
     // so it does NOT unmount on route changes — this is safe.
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Applied to every text/label element.
-  // pointerEvents: 'none' is critical — labels must never receive mouseenter/mouseleave
-  // or they will bubble up and falsely trigger the sidebar's own listeners.
-  const labelStyle: React.CSSProperties = {
-    opacity: isExpanded ? 1 : 0,
-    maxWidth: isExpanded ? '180px' : '0px',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    transition: 'opacity 200ms ease, max-width 220ms ease',
-    pointerEvents: 'none',
-    userSelect: 'none',
-    flexShrink: 0,
-  }
-
-  // Margin on the label wrapper so the icon doesn't jump
-  const marginStyle: React.CSSProperties = {
-    marginLeft: isExpanded ? '10px' : '0px',
-    transition: 'margin 220ms ease',
-  }
-
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user_data')
@@ -86,25 +68,18 @@ export function AppSidebar() {
   return (
     <aside
       ref={sidebarRef as React.RefObject<HTMLElement>}
-      style={{
-        width: isExpanded ? '240px' : '64px',
-        transition: 'width 250ms cubic-bezier(0.4, 0, 0.2, 1)',
-        willChange: 'width',
-      }}
-      className="fixed left-0 top-0 h-screen z-40 flex flex-col bg-[#800000] overflow-hidden shrink-0"
+      className={`fixed left-0 top-0 h-screen z-40 flex flex-col bg-[#800000] overflow-hidden shrink-0 transition-[width] duration-300 ease-out ${isExpanded ? 'w-[240px]' : 'w-16'}`}
     >
       {/* ── Logo ── */}
       <div
-        className="flex items-center h-16 px-3 border-b border-white/10 shrink-0"
-        style={{ pointerEvents: 'none' }}
+        className="flex items-center h-16 px-3 border-b border-white/10 shrink-0 pointer-events-none"
       >
         <div
-          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-sm"
-          style={{ background: '#FFD700', color: '#800000' }}
+          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-sm bg-[#FFD700] text-[#800000]"
         >
           PD
         </div>
-        <div style={{ ...labelStyle, ...marginStyle }}>
+        <div className={`overflow-hidden whitespace-nowrap pointer-events-none select-none flex-shrink-0 transition-[opacity,max-width,margin-left] duration-200 ease-out ${isExpanded ? 'ml-2 max-w-[180px] opacity-100' : 'ml-0 max-w-0 opacity-0'}`}>
           <p className="text-white font-semibold text-sm leading-tight tracking-wide whitespace-nowrap">
             PUP Deliver
           </p>
@@ -112,20 +87,19 @@ export function AppSidebar() {
       </div>
 
       {/* ── Navigation ── */}
-      <nav
-        className="flex-1 py-4 overflow-y-auto"
-        style={{ overflowX: 'hidden' }}
-      >
+      <nav className="flex-1 py-4 overflow-y-auto overflow-x-hidden">
         <div className="flex flex-col gap-0.5 px-2">
           {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              icon={item.icon}
-              label={item.label}
-              to={item.to}
-              end={item.end}
-              isExpanded={isExpanded}
-            />
+            item.to === '/admin' && user?.role !== 'admin' ? null : (
+              <NavLink
+                key={item.to}
+                icon={item.icon}
+                label={item.label}
+                to={item.to}
+                end={item.end}
+                isExpanded={isExpanded}
+              />
+            )
           ))}
         </div>
       </nav>
@@ -138,22 +112,14 @@ export function AppSidebar() {
       >
         {/* Avatar — always visible */}
         <div
-          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
-          style={{ background: '#600000', color: '#FFD700', pointerEvents: 'none' }}
+          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-bold bg-[#600000] text-[#FFD700] pointer-events-none"
         >
           {getInitials()}
         </div>
 
         {/* Name + role — fades in on expand */}
-        <div
-          className="flex items-center gap-2 flex-1 min-w-0"
-          style={{
-            ...labelStyle,
-            ...marginStyle,
-            maxWidth: isExpanded ? '200px' : '0px',
-          }}
-        >
-          <div className="flex-1 min-w-0" style={{ pointerEvents: 'none' }}>
+        <div className={`flex items-center gap-2 flex-1 min-w-0 overflow-hidden whitespace-nowrap pointer-events-none select-none transition-[opacity,max-width,margin-left] duration-200 ease-out ${isExpanded ? 'ml-2 max-w-[200px] opacity-100' : 'ml-0 max-w-0 opacity-0'}`}>
+          <div className="flex-1 min-w-0">
             <p className="text-white text-[12.5px] font-medium leading-tight truncate">
               {user?.full_name || 'User'}
             </p>
@@ -165,14 +131,12 @@ export function AppSidebar() {
           {/* Logout — only interactive when expanded */}
           <button
             onClick={(e) => { e.stopPropagation(); handleLogout() }}
-            className="shrink-0 p-1 rounded-md hover:bg-white/10 transition-colors"
+            className={`shrink-0 p-1 rounded-md hover:bg-white/10 transition-colors ${isExpanded ? 'pointer-events-auto' : 'pointer-events-none'}`}
             aria-label="Log out"
             title="Log out"
-            style={{ pointerEvents: isExpanded ? 'auto' : 'none' }}
           >
             <LogOut
-              className="h-4 w-4"
-              style={{ color: '#FFD700', pointerEvents: 'none' }}
+              className="h-4 w-4 text-[#FFD700] pointer-events-none"
             />
           </button>
         </div>

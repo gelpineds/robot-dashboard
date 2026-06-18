@@ -6,6 +6,7 @@ import {
   Lock,
   LogOut,
   ChevronRight,
+  Shield,
 } from "lucide-react";
 import { UserData } from "@/hooks/useUser";
 
@@ -63,24 +64,20 @@ export function SettingsPanel({ open, onClose, user, triggerRef }: SettingsPanel
     onClose();
   };
 
+  const options = user?.role === "admin"
+    ? [...SETTINGS_OPTIONS, { icon: Shield, label: "Admin Panel", description: "Manage users, robots, and queueing", path: "/admin" }]
+    : SETTINGS_OPTIONS;
+
   return (
     <div
       ref={panelRef}
-      className="absolute right-0 top-full mt-2 z-50"
-      style={{
-        width: 280,
-        background: "#fff",
-        borderRadius: 16,
-        border: "1px solid #E5E7EB",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
-      }}
+      className="absolute right-0 top-full mt-2 z-50 w-[280px] rounded-2xl border border-gray-200 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
     >
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
           <div
-            className="flex items-center justify-center rounded-full"
-            style={{ width: 32, height: 32, background: "#800000" }}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#800000]"
           >
             <span className="text-white text-xs font-bold">{getInitials()}</span>
           </div>
@@ -92,8 +89,8 @@ export function SettingsPanel({ open, onClose, user, triggerRef }: SettingsPanel
       </div>
 
       {/* Settings List */}
-      <div style={{ maxHeight: 360, overflowY: "auto" }}>
-        {SETTINGS_OPTIONS.map((option) => {
+      <div className="max-h-[360px] overflow-y-auto">
+        {options.map((option) => {
           const Icon = option.icon;
           return (
             <button
@@ -103,10 +100,9 @@ export function SettingsPanel({ open, onClose, user, triggerRef }: SettingsPanel
             >
               {/* Icon */}
               <div
-                className="flex items-center justify-center rounded-lg shrink-0"
-                style={{ width: 36, height: 36, background: "#FFF5F5" }}
+                className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0 bg-[#FFF5F5]"
               >
-                <Icon style={{ width: 16, height: 16, color: "#800000" }} />
+                <Icon className="h-4 w-4 text-[#800000]" />
               </div>
 
               {/* Text */}
@@ -116,7 +112,7 @@ export function SettingsPanel({ open, onClose, user, triggerRef }: SettingsPanel
               </div>
 
               {/* Chevron */}
-              <ChevronRight style={{ width: 16, height: 16, color: "#9CA3AF" }} className="shrink-0" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
             </button>
           );
         })}
@@ -126,12 +122,9 @@ export function SettingsPanel({ open, onClose, user, triggerRef }: SettingsPanel
       <div className="border-t border-gray-100 p-3">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-[13px] font-semibold transition-colors"
-          style={{ background: "#FFE5E5", color: "#800000" }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "#FFC9C9")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "#FFE5E5")}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-[13px] font-semibold transition-colors bg-[#FFE5E5] text-[#800000] hover:bg-[#FFC9C9]"
         >
-          <LogOut style={{ width: 16, height: 16 }} />
+          <LogOut className="h-4 w-4" />
           Logout
         </button>
       </div>

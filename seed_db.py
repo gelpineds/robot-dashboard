@@ -25,7 +25,6 @@ with app.app_context():
         password_hash=admin_hash,
         role="admin",
         is_active=True,
-        is_verified=True   
     )
 
     db.session.add(admin)

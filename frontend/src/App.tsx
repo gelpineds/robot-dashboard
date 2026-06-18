@@ -18,7 +18,9 @@ import Login from "./pages/Login.tsx";
 import Register from "./pages/Register.tsx";
 import Notifications from "./pages/Notifications.tsx";
 import DeliveryInbox from "./pages/DeliveryInbox.tsx";
-import VerifyEmail from "./pages/VerifyEmail.tsx";
+import AdminPanel from "./pages/AdminPanel.tsx";
+import { useUserProvider } from "@/context/UserProvider";
+import { useUser } from "@/hooks/useUser";
 
 
 const queryClient = new QueryClient();
@@ -27,6 +29,18 @@ const queryClient = new QueryClient();
 const ProtectedRoute = ({ element }: { element: React.ReactNode }) => {
   const token = localStorage.getItem("token");
   return token ? element : <Navigate to="/login" replace />;
+};
+
+const AdminRoute = ({ element }: { element: React.ReactNode }) => {
+  const token = localStorage.getItem("token");
+  const { isInitialized } = useUserProvider();
+  const { user } = useUser();
+
+  if (!token) return <Navigate to="/login" replace />;
+  if (!isInitialized) return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">Loading admin panel...</div>;
+  if (user?.role !== "admin") return <Navigate to="/" replace />;
+
+  return element;
 };
 
 const App = () => (
@@ -52,7 +66,7 @@ const App = () => (
                 <Route path="/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
                 <Route path="/notifications" element={<ProtectedRoute element={<Notifications />} />} />
                 <Route path="/delivery-inbox" element={<ProtectedRoute element={<DeliveryInbox />} />} />
-                <Route path="/verify-email" element={<VerifyEmail />} />
+                <Route path="/admin" element={<AdminRoute element={<AdminPanel />} />} />
               </Routes>
               </BrowserRouter>
             </TooltipProvider>

@@ -87,6 +87,7 @@ export default function Register() {
         full_name: formData.full_name,
         username: formData.username,
         email: formData.email,
+        floor: formData.floor,
         room: formData.room,
         password: formData.password,
       });
@@ -158,7 +159,7 @@ export default function Register() {
               <CheckCircle2 size={36} className="text-green-500" />
             </div>
             <h2 className="text-xl font-medium text-gray-900 mb-2">Account created!</h2>
-            <p className="text-gray-500 text-sm mb-4">Check your email for a verification link, then log in.</p>
+            <p className="text-gray-500 text-sm mb-4">Your account is ready. You can sign in now.</p>
             <Loader2 size={20} className="animate-spin text-[#800000]" />
           </div>
         </div>

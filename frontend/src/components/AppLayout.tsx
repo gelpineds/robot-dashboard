@@ -21,6 +21,7 @@ const routeTitles: Record<string, string> = {
   "/inbox":         "Delivery Inbox",
   "/documents":     "Documents",
   "/settings":      "Settings",
+  "/admin":         "Admin Panel",
   "/track":         "Track Delivery",
   "/notifications": "Notifications",
 };

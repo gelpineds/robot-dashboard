@@ -10,9 +10,45 @@ def create_app():
     app.url_map.strict_slashes = False
 
     # Initialize CORS FIRST before registering routes
+    # Build allowed origins from defaults plus any FRONTEND_URL(s) provided in env
+    default_origins = [
+        "http://localhost:8000",
+        "http://localhost:8081",
+        "http://localhost:8080",
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ]
+
+    cfg_frontend = app.config.get('FRONTEND_URL') or ''
+    extra_origins = []
+    if cfg_frontend:
+        # support comma-separated list in FRONTEND_URL env
+        for part in cfg_frontend.split(','):
+            p = part.strip()
+            if p:
+                extra_origins.append(p)
+
+    # include common LAN/dev IPs on common frontend ports so devices on the LAN can connect
+    common_ips = ["127.0.0.1", "0.0.0.0", "172.20.10.2", "26.114.248.191"]
+    common_ports = ["8080", "8081", "8000", "3000", "5173"]
+    common_lan = []
+    for scheme in ("http", "https"):
+        for ip in common_ips:
+            for port in common_ports:
+                origin = f"{scheme}://{ip}:{port}"
+                if origin not in common_lan:
+                    common_lan.append(origin)
+
+    # Merge lists while preserving order and avoiding duplicates
+    allowed_origins = []
+    for lst in (default_origins, extra_origins, common_lan):
+        for o in lst:
+            if o and o not in allowed_origins:
+                allowed_origins.append(o)
+
     cors.init_app(app, resources={
         r"/api/*": {
-            "origins": ["http://localhost:8000", "http://localhost:8081", "http://localhost:8080", "http://localhost:3000", "http://localhost:5173"],
+            "origins": allowed_origins,
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
             "allow_headers": ["Content-Type", "Authorization"],
             "expose_headers": ["Content-Type"],
@@ -50,9 +86,10 @@ def create_app():
     init_admin(app)
 
     # Initialize SocketIO LAST so it wraps everything properly
+    # Use the same allowed_origins for SocketIO CORS
     socketio.init_app(
         app,
-        cors_allowed_origins=["http://localhost:8080", "http://localhost:3000"],
+        cors_allowed_origins=allowed_origins,
         cors_credentials=True
     )
 

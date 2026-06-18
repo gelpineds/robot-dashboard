@@ -41,7 +41,8 @@ interface NotificationContextValue {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
+const SOCKET_BASE = API_BASE.replace(/\/api\/?$/, "");
 const POLL_INTERVAL_MS = 30_000;
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -179,7 +180,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // ── SocketIO — real-time push ────────────────────────────────────────────
 
   useEffect(() => {
-    const socket: Socket = io(API_BASE, {
+    const socket: Socket = io(SOCKET_BASE, {
       transports: ["websocket"],
       autoConnect: true,
     });

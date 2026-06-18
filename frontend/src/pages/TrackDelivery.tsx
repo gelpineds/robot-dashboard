@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { authAPI } from "@/lib/api";
 import { AppLayout } from "@/components/AppLayout";
 import { StatusTimeline } from "@/components/ui/timeline";
 import { RouteMap } from "@/components/ui/maps";
@@ -57,6 +58,28 @@ export default function TrackDelivery() {
       });
     },
   });
+
+    // Fetch current user to determine whether we should show the "Confirm Receipt" action
+    const { data: currentUser } = useQuery({
+      queryKey: ["currentUser"],
+      queryFn: () => authAPI.getCurrentUser(),
+    });
+
+    const confirmMutation = useMutation({
+      mutationFn: async () => {
+        if (!deliveryId) throw new Error("No delivery ID");
+        await deliveriesAPI.confirmReceived(Number(deliveryId));
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["delivery", deliveryId] });
+        queryClient.invalidateQueries({ queryKey: ["deliveries-all"] });
+        toast({ title: "Receipt confirmed", description: "Thank you. Delivery marked as received." });
+        navigate('/history');
+      },
+      onError: (err: any) => {
+        toast({ title: "Failed to confirm receipt", description: err?.message || "An error occurred.", variant: "destructive" });
+      },
+    });
 
   if (!deliveryId) {
     return (
@@ -184,6 +207,33 @@ export default function TrackDelivery() {
                       disabled={cancelMutation.isPending}
                     >
                       Yes, cancel it
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            {/* Confirm Receipt — only visible to the recipient when status allows */}
+            {currentUser && delivery.recipient_user_id === currentUser.id && ['pending_request', 'robot_assigned', 'arrived', 'in_transit'].includes(delivery.status) && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button
+                    className="ml-2 flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                    disabled={confirmMutation.isPending}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-1" /> Confirm Receipt
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirm Receipt?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Confirm that you have received the package and reviewed documents.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={confirmMutation.isPending}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => confirmMutation.mutate()} disabled={confirmMutation.isPending}>
+                      Yes, confirm
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

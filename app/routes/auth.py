@@ -1,11 +1,9 @@
 #auth.py
 from flask import Blueprint, request, current_app, session, redirect, url_for
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from flask_mail import Message
-from app.extensions import db, bcrypt, mail
+from app.extensions import db, bcrypt
 from app.models.user import User
 from urllib.parse import urlparse
-import secrets
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -13,34 +11,6 @@ auth_bp = Blueprint("auth", __name__)
 def _is_safe_redirect_url(url: str) -> bool:
     parsed = urlparse(url)
     return not parsed.scheme and not parsed.netloc and url.startswith("/")
-
-
-def send_verification_email(user):
-    frontend_url = current_app.config["FRONTEND_URL"]
-    verify_link = f"{frontend_url}/verify-email?token={user.verification_token}"
-
-    msg = Message(
-        subject="Verify your PUP Deliver account",
-        recipients=[user.email],
-        html=f"""
-        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
-            <h2 style="color: #800000;">PUP Deliver</h2>
-            <p>Hi <strong>{user.full_name}</strong>,</p>
-            <p>Thanks for registering! Please verify your email address to activate your account.</p>
-            <a href="{verify_link}"
-               style="display:inline-block; padding: 12px 24px; background:#800000;
-                      color:#FFD700; text-decoration:none; border-radius:8px;
-                      font-weight:bold; margin: 16px 0;">
-                Verify Email
-            </a>
-            <p style="color:#888; font-size:12px;">
-                If you didn't register, you can ignore this email.<br/>
-                Link expires after use.
-            </p>
-        </div>
-        """
-    )
-    mail.send(msg)
 
 
 @auth_bp.post("/register")
@@ -51,6 +21,7 @@ def register():
     email = data.get("email")
     full_name = data.get("full_name")
     password = data.get("password")
+    floor = data.get("floor")
     room = data.get("room")
     registration_code = data.get("registration_code", "").strip()
 
@@ -63,8 +34,8 @@ def register():
     if role == "admin":
         role = "user"
 
-    if not username or not email or not full_name or not password:
-        return {"error": "username, email, full_name, and password are required"}, 400
+    if not username or not email or not full_name or not password or not floor or not room:
+        return {"error": "username, email, full_name, floor, room, and password are required"}, 400
 
     if User.query.filter_by(username=username).first():
         return {"error": "Username already exists"}, 409
@@ -73,7 +44,6 @@ def register():
         return {"error": "Email already exists"}, 409
 
     password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
-    verification_token = secrets.token_urlsafe(32)  # NEW
 
     user = User(
         username=username,
@@ -81,56 +51,26 @@ def register():
         full_name=full_name,
         password_hash=password_hash,
         role=role,
+        floor=floor,
         room=room,
-        is_verified=False,                      # NEW
-        verification_token=verification_token   # NEW
+        is_active=True,
     )
 
     db.session.add(user)
     db.session.commit()
 
-    # Send verification email
-    try:
-        send_verification_email(user)
-    except Exception as e:
-        # Don't fail registration if email fails — just log it
-        current_app.logger.error(f"Failed to send verification email: {e}")
-
     return {
-        "message": "Registration successful. Please check your email to verify your account.",
+        "message": "Registration successful. You can sign in now.",
         "user": {
             "id": user.id,
             "username": user.username,
             "email": user.email,
             "full_name": user.full_name,
             "role": user.role,
+            "floor": user.floor,
             "room": user.room,
-            "is_verified": user.is_verified
         }
     }, 201
-
-
-@auth_bp.get("/verify-email")
-def verify_email():
-    """Verify email using token from the link"""
-    token = request.args.get("token")
-
-    if not token:
-        return {"error": "Verification token is required."}, 400
-
-    user = User.query.filter_by(verification_token=token).first()
-
-    if not user:
-        return {"error": "Invalid or expired verification token."}, 404
-
-    if user.is_verified:
-        return {"message": "Email already verified."}, 200
-
-    user.is_verified = True
-    user.verification_token = None  # Invalidate token after use
-    db.session.commit()
-
-    return {"message": "Email verified successfully. You can now log in."}, 200
 
 
 @auth_bp.post("/login")
@@ -160,10 +100,6 @@ def login():
     if not user.is_active:
         return {"error": "This account is inactive"}, 403
 
-    # Block unverified users from logging in
-    if not user.is_verified:
-        return {"error": "Please verify your email before logging in."}, 403
-
     if not bcrypt.check_password_hash(user.password_hash, password):
         return {"error": "Invalid username or password"}, 401
 
@@ -185,6 +121,7 @@ def login():
             "email": user.email,
             "full_name": user.full_name,
             "role": user.role,
+            "floor": user.floor,
             "room": user.room
         }
     }, 200
@@ -210,6 +147,7 @@ def get_current_user():
         "email": user.email,
         "full_name": user.full_name,
         "role": user.role,
+        "floor": user.floor,
         "room": user.room
     }, 200
 

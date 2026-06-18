@@ -1,12 +1,15 @@
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.extensions import db
 from app.models.user import User
+from app.utils.decorators import admin_required
 
 users_bp = Blueprint("users", __name__)
 
 
 @users_bp.get("/")
 @jwt_required()
+@admin_required()
 def get_all_users():
     """Get list of all users"""
     users = User.query.filter_by(is_active=True).order_by(User.id.asc()).all()
@@ -18,6 +21,7 @@ def get_all_users():
             "email": user.email,
             "full_name": user.full_name,
             "role": user.role,
+            "floor": user.floor,
             "room": user.room,
         }
         for user in users
@@ -48,6 +52,7 @@ def search_users():
             "email": user.email,
             "full_name": user.full_name,
             "role": user.role,
+            "floor": user.floor,
             "room": user.room,
         }
         for user in users
@@ -56,6 +61,7 @@ def search_users():
 
 @users_bp.get("/<int:user_id>")
 @jwt_required()
+@admin_required()
 def get_user(user_id):
     """Get a specific user by ID"""
     user = User.query.get(user_id)
@@ -69,5 +75,62 @@ def get_user(user_id):
         "email": user.email,
         "full_name": user.full_name,
         "role": user.role,
+        "floor": user.floor,
         "room": user.room,
     }, 200
+
+
+@users_bp.put("/<int:user_id>")
+@jwt_required()
+@admin_required()
+def update_user(user_id):
+    """Update a user account from the admin panel"""
+    user = User.query.get(user_id)
+
+    if not user:
+        return {"error": "User not found"}, 404
+
+    data = request.get_json() or {}
+
+    allowed_fields = ["username", "email", "full_name", "role", "floor", "room", "is_active"]
+
+    for field in allowed_fields:
+        if field in data:
+            setattr(user, field, data[field])
+
+    db.session.commit()
+
+    return {
+        "message": "User updated successfully",
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "floor": user.floor,
+            "room": user.room,
+            "is_active": user.is_active,
+        }
+    }, 200
+
+
+@users_bp.delete("/<int:user_id>")
+@jwt_required()
+@admin_required()
+def delete_user(user_id):
+    """Delete a user account from the admin panel"""
+    current_admin_id = int(get_jwt_identity())
+
+    if user_id == current_admin_id:
+        return {"error": "You cannot delete your own account"}, 400
+
+    user = User.query.get(user_id)
+
+    if not user:
+        return {"error": "User not found"}, 404
+
+    db.session.delete(user)
+    db.session.commit()
+
+    return {"message": "User deleted successfully"}, 200
