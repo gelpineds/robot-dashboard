@@ -5,6 +5,7 @@ from app.extensions import db
 from app.models.delivery import Delivery
 from app.models.user import User
 from app.utils.notifications import create_notification
+from app.ros2.publisher import publish_goal_pose
 
 deliveries_bp = Blueprint("deliveries", __name__)
 
@@ -45,6 +46,8 @@ def create_request():
 
     db.session.add(delivery)
     db.session.commit()
+
+    ros_sent = publish_goal_pose(delivery.dropoff_location)
 
     # Notify the requesting user that their delivery request was submitted
     create_notification(
