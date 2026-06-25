@@ -10,6 +10,7 @@ export type DeliveryStatus =
   | 'arrived'         // robot physically at User2's room — awaiting receipt confirmation
   | 'completed'       // User2 confirmed receipt in the app
   | 'cancelled'       // cancelled by User1 before robot picks up
+  | 'pending_request'
 
 export type DeliveryPriority = 'standard' | 'express'
 

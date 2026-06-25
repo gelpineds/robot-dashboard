@@ -72,6 +72,7 @@ def create_app():
     from app.routes.alerts import alerts_bp
     from app.routes.users import users_bp
     from app.routes.notifications import notifications_bp
+    from app.routes.tray_lock import delivery_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(users_bp, url_prefix="/api/users")
@@ -80,6 +81,7 @@ def create_app():
     app.register_blueprint(telemetry_bp, url_prefix="/api/telemetry")
     app.register_blueprint(alerts_bp, url_prefix="/api/alerts")
     app.register_blueprint(notifications_bp, url_prefix="/api/notifications")
+    app.register_blueprint(delivery_bp, url_prefix="/api/unlock-tray")
 
     # Initialize Flask-Admin BEFORE SocketIO
     from app.admin import init_admin
