@@ -31,20 +31,24 @@ def get_all_users():
 @users_bp.get("/search")
 @jwt_required()
 def search_users():
-    """Search users by name, email, username, or room"""
+    """Search users by name, email, username, or room.
+    An empty query returns all active users (excluding the requester)."""
+    current_user_id = int(get_jwt_identity())
     query = request.args.get("q", "").strip()
-    
-    if not query or len(query) < 1:
-        return {"error": "Search query required"}, 400
-    
-    # Search across multiple fields
-    users = User.query.filter_by(is_active=True).filter(
-        (User.full_name.ilike(f"%{query}%")) |
-        (User.username.ilike(f"%{query}%")) |
-        (User.email.ilike(f"%{query}%")) |
-        (User.room.ilike(f"%{query}%"))
-    ).order_by(User.full_name.asc()).all()
-    
+
+    base = User.query.filter_by(is_active=True).filter(User.id != current_user_id)
+    users = base.order_by(User.full_name.asc()).limit(20).all()
+
+    if query:
+        base = base.filter(
+            (User.full_name.ilike(f"%{query}%")) |
+            (User.username.ilike(f"%{query}%")) |
+            (User.email.ilike(f"%{query}%")) |
+            (User.room.ilike(f"%{query}%"))
+        )
+
+    users = base.order_by(User.full_name.asc()).all()
+
     return [
         {
             "id": user.id,
@@ -57,7 +61,6 @@ def search_users():
         }
         for user in users
     ], 200
-
 
 @users_bp.get("/<int:user_id>")
 @jwt_required()

@@ -2,6 +2,7 @@
 from datetime import datetime
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from sqlalchemy import or_
 from app.extensions import db
 from app.models.delivery import Delivery
 from app.models.user import User
@@ -109,6 +110,7 @@ def get_my_requests():
             "pickup_location": d.pickup_location,
             "dropoff_location": d.dropoff_location,
             "status": d.status,
+            "robot_id": d.robot_id,
             "received_confirmed": d.received_confirmed,
             "received_at": d.received_at.isoformat() if d.received_at else None,
             "created_at": d.created_at.isoformat(),
@@ -143,7 +145,7 @@ def get_my_inbox():
             "received_confirmed": d.received_confirmed,
             "quantity": d.quantity or 1,
             "notes": d.notes or "",
-            "arrived_at": d.received_at.isoformat() if d.received_at else None,
+            "arrived_at": d.arrived_at.isoformat() if d.arrived_at else None,
             "completed_at": d.received_at.isoformat() if d.received_at else None,
             "created_at": d.created_at.isoformat(),
             "updated_at": d.updated_at.isoformat() if d.updated_at else None,
@@ -152,7 +154,44 @@ def get_my_inbox():
         for d in deliveries
     ], 200
 
+@deliveries_bp.get("/my-history")
+@jwt_required()
+def get_my_history():
+    user_id = int(get_jwt_identity())
 
+    deliveries = (
+        Delivery.query
+        .filter(or_(
+            Delivery.requested_by_user_id == user_id,
+            Delivery.recipient_user_id == user_id
+        ))
+        .order_by(Delivery.created_at.desc())
+        .all()
+    )
+
+    return [
+        {
+            "id": d.id,
+            "document_name": d.document_name,
+            "sender": d.sender,
+            "recipient": d.recipient,
+            "pickup_location": d.pickup_location,
+            "dropoff_location": d.dropoff_location,
+            "status": d.status,
+            "robot_id": d.robot_id,
+            "requested_by_user_id": d.requested_by_user_id,
+            "recipient_user_id": d.recipient_user_id,
+            "received_confirmed": d.received_confirmed,
+            "arrived_at": d.arrived_at.isoformat() if d.arrived_at else None,
+            "received_at": d.received_at.isoformat() if d.received_at else None,
+            "created_at": d.created_at.isoformat(),
+            "updated_at": d.updated_at.isoformat() if d.updated_at else None,
+            "is_sender": d.requested_by_user_id == user_id,
+            "is_recipient": d.recipient_user_id == user_id,
+        }
+        for d in deliveries
+    ], 200
+    
 @deliveries_bp.get("/<int:delivery_id>")
 @jwt_required()
 def get_delivery(delivery_id):
@@ -190,8 +229,15 @@ def confirm_received(delivery_id):
         return {"error": "You are not allowed to confirm this delivery"}, 403
 
     # Allow confirming all delivery statuses for testing purposes
-    if delivery.status not in ["pending_request", "robot_assigned", "arrived"]:
-        return {"error": "This delivery cannot be marked as received"}, 400
+    if delivery.status == "completed":
+        return {
+            "message": "Delivery was already marked as received",
+            "delivery": {
+                "id": delivery.id,
+                "status": delivery.status,
+                "received_confirmed": delivery.received_confirmed
+            }
+        }, 200
 
     delivery.status = "completed"
     delivery.received_confirmed = True
@@ -256,10 +302,8 @@ def get_all_requests():
 @jwt_required()
 def admin_update_delivery(delivery_id):
     claims = get_jwt()
-
     delivery = Delivery.query.get_or_404(delivery_id)
     data = request.get_json() or {}
-
     previous_status = delivery.status
 
     allowed_fields = [
@@ -276,6 +320,9 @@ def admin_update_delivery(delivery_id):
         if field in data:
             setattr(delivery, field, data[field])
 
+    if delivery.status == "arrived" and previous_status != "arrived":
+        delivery.arrived_at = datetime.utcnow()
+
     db.session.commit()
 
     new_status = delivery.status
@@ -283,7 +330,7 @@ def admin_update_delivery(delivery_id):
     # Trigger notifications based on the new status, only when status actually changed
     if new_status != previous_status:
 
-        if new_status == "delivered":
+        if new_status == "arrived":
             # Robot has arrived at the recipient's location
             create_notification(
                 user_id=delivery.requested_by_user_id,
@@ -331,6 +378,7 @@ def admin_update_delivery(delivery_id):
             "id": delivery.id,
             "status": delivery.status,
             "robot_id": delivery.robot_id,
+            "arrived_at": delivery.arrived_at.isoformat() if delivery.arrived_at else None,
             "updated_at": delivery.updated_at.isoformat() if delivery.updated_at else None
         }
     }, 200

@@ -16,12 +16,18 @@ import { toast } from "@/hooks/use-toast";
 import { deliveriesAPI } from "@/lib/api";
 
 // ─── Shared status config ─────────────────────────────────────────────────────
-export const STATUS_STYLES: Record<string, { bg: string; color: string; dot: string }> = {
-  "Completed":  { bg: "rgba(22,163,74,0.1)",  color: "#15803d", dot: "#16a34a" },
-  "Delivered":  { bg: "rgba(22,163,74,0.1)",  color: "#15803d", dot: "#16a34a" },
-  "In Transit": { bg: "rgba(255,215,0,0.18)", color: "#92400e", dot: "#d97706" },
-  "Pending":    { bg: "#F3F4F6",              color: "#6B7280", dot: "#9CA3AF" },
-  "Failed":     { bg: "rgba(239,68,68,0.1)",  color: "#dc2626", dot: "#ef4444" },
+export const STATUS_STYLES: Record<string, { color: string; dot: string }> = {
+  "Completed":  { color: "#15803d", dot: "#16a34a" },
+  "Delivered":  { color: "#15803d", dot: "#16a34a" },
+  "In Transit": { color: "#92400e", dot: "#d97706" },
+  "Pending":    { color: "#6B7280", dot: "#9CA3AF" },
+  "Failed":     { color: "#dc2626", dot: "#ef4444" },
+};
+
+export const DIRECTION_STYLES: Record<string, { color: string }> = {
+  "Incoming": { color: "#1d4ed8" },
+  "Outgoing": { color: "#6d28d9" },
+  "Self":     { color: "#6B7280" },
 };
 
 // ─── Standard delivery row (legacy / dashboard mode) ─────────────────────────
@@ -49,6 +55,7 @@ export function DeliveryTable({ data }: { data: DeliveryRow[] }) {
         <tbody>
           {data.map((row, i) => {
             const s = STATUS_STYLES[row.status] ?? STATUS_STYLES["Pending"];
+            
             return (
               <tr key={row.id} style={{ background: i % 2 === 0 ? "#fff" : "#F9FAFB" }} className="hover:bg-[#FFF5F5] transition-colors">
                 <td className="px-3 py-2.5 font-mono text-[11px] font-semibold" style={{ color: "#800000" }}>{row.id}</td>
@@ -56,7 +63,7 @@ export function DeliveryTable({ data }: { data: DeliveryRow[] }) {
                 <td className="px-3 py-2.5 text-[12px] text-gray-500">{row.from}</td>
                 <td className="px-3 py-2.5 text-[12px] text-gray-500">{row.to}</td>
                 <td className="px-3 py-2.5">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: s.bg, color: s.color }}>{row.status}</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ color: s.color }}>{row.status}</span>
                 </td>
                 <td className="px-3 py-2.5 text-[12px] text-gray-500">{row.robot}</td>
                 <td className="px-3 py-2.5 text-[11px] text-gray-400">{row.time}</td>
@@ -78,6 +85,7 @@ export interface HistoryRow {
   to: string;
   datetime: string;
   status: string;
+  direction?: "Incoming" | "Outgoing" | "Self";
 }
 
 interface HistoryTableProps {
@@ -127,7 +135,7 @@ export function HistoryTable({ data, onView }: HistoryTableProps) {
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr style={{ background: "#800000" }}>
-            {["Delivery ID", "Sender", "Robot", "Route", "Date & Time", "Status", "Actions"].map((h) => (
+            {["Sender", "Robot", "Route", "Date & Time", "Status", "Actions"].map((h) => (
               <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-white tracking-wide whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -141,25 +149,23 @@ export function HistoryTable({ data, onView }: HistoryTableProps) {
             const canCancel = ["Pending", "In Transit", "pending_request", "robot_assigned", "in_transit"].includes(row.status);
             return (
               <tr key={row.id} style={{ background: i % 2 === 0 ? "#fff" : "#F9FAFB" }} className="hover:bg-[#FFF5F5] transition-colors">
-                {/* Order ID */}
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() => {
-                      navigate(`/track/${numericId}`);
-                    }}
-                    className="font-mono text-[11px] font-bold hover:underline underline-offset-2"
-                    style={{ color: "#800000" }}
-                  >
-                    {row.id}
-                  </button>
-                </td>
+                
                 {/* Customer */}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0" style={{ background: bg }}>
-                      {initials(row.customer)}
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[12px] font-medium text-[#1A1A1A] whitespace-nowrap">{row.customer}</span>
+                      {row.direction && (
+                        <span
+                          className="px-1.5 py-0.5 rounded text-[9px] font-semibold w-fit"
+                          style={{
+                            color: DIRECTION_STYLES[row.direction]?.color ?? DIRECTION_STYLES["Self"].color,
+                          }}
+                        >
+                          {row.direction}
+                        </span>
+                      )}
                     </div>
-                    <span className="text-[12px] font-medium text-[#1A1A1A] whitespace-nowrap">{row.customer}</span>
                   </div>
                 </td>
                 {/* Robot */}
@@ -181,7 +187,7 @@ export function HistoryTable({ data, onView }: HistoryTableProps) {
                 <td className="px-4 py-3 text-[11px] text-gray-500 whitespace-nowrap">{row.datetime}</td>
                 {/* Status */}
                 <td className="px-4 py-3">
-                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold w-fit" style={{ background: s.bg, color: s.color }}>
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold w-fit" style={{ color: s.color }}>
                     <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
                     {row.status}
                   </span>

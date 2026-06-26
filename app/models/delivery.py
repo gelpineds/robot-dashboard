@@ -18,6 +18,7 @@ class Delivery(db.Model):
     recipient_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     received_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     received_confirmed = db.Column(db.Boolean, default=False)
+    arrived_at = db.Column(db.DateTime, nullable=True)
     received_at = db.Column(db.DateTime, nullable=True)
     quantity = db.Column(db.Integer, default=1)
     notes = db.Column(db.Text, nullable=True)

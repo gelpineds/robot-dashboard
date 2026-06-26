@@ -41,9 +41,9 @@ export default function DeliveryHistory() {
 
   // Fetch deliveries and robots from backend
   const { data: backendDeliveries = [], isLoading, error } = useQuery({
-    queryKey: ['deliveries-my-requests'],
-    queryFn: deliveriesAPI.getMyRequests,
-    refetchInterval: 5000, // Refetch every 5 seconds
+    queryKey: ['deliveries-my-history'],          
+    queryFn: deliveriesAPI.getMyHistory,          
+    refetchInterval: 5000,
     retry: 3,
   });
 
@@ -53,8 +53,6 @@ export default function DeliveryHistory() {
     refetchInterval: 5000,
     retry: 3,
   });
-
-
 
   // Build robot list
   const ROBOTS = ["All Robots", ...backendRobots.map((r: any) => r.name)];
@@ -67,7 +65,15 @@ export default function DeliveryHistory() {
     from: d.pickup_location || 'Unknown',
     to: d.dropoff_location || 'Unknown',
     datetime: formatDateOnly(d.created_at),
-    status: d.status === 'pending_request' ? 'Pending' : d.status === 'robot_assigned' ? 'Pending' : d.status === 'dispatched' ? 'In Transit' : d.status === 'arrived' ? 'In Transit' : d.status === 'received' ? 'Delivered' : d.status,
+    status:
+      d.status === 'pending_request' ? 'Pending' :
+      d.status === 'robot_assigned' ? 'Pending' :
+      d.status === 'dispatched' ? 'In Transit' :
+      d.status === 'arrived' ? 'In Transit' :
+      d.status === 'completed' ? 'Delivered' :   
+      d.status === 'cancelled' ? 'Failed' :       
+      d.status,
+    direction: d.is_sender && d.is_recipient ? 'Self' : d.is_sender ? 'Outgoing' : 'Incoming',  
   }));
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
@@ -146,7 +152,7 @@ export default function DeliveryHistory() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by Order ID or customer name…"
+                placeholder="Search by Customer name…"
                 className="w-full pl-9 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#800000] focus:ring-2 focus:ring-[#800000]/10 transition-all placeholder:text-gray-400"
               />
             </div>
@@ -197,7 +203,7 @@ export default function DeliveryHistory() {
                     active
                       ? { background: "#800000", color: "#FFD700", borderColor: "#800000" }
                       : sc
-                      ? { background: sc.bg, color: sc.color, borderColor: "transparent" }
+                      ? { color: sc.color, borderColor: "transparent" }
                       : { background: "#F3F4F6", color: "#6B7280", borderColor: "transparent" }
                   }
                 >

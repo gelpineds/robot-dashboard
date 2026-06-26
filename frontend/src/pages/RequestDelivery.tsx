@@ -158,11 +158,17 @@ export default function RequestDelivery() {
   const [recipient, setRecipient] = useState<UserProfile | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(recipientQuery), 300);
+    return () => clearTimeout(timer);
+  }, [recipientQuery]);
 
   const { data: searchResults = [], isFetching: searching } = useQuery<any[]>({
-    queryKey: ["userSearch", recipientQuery],
-    queryFn: () => usersAPI.search(recipientQuery),
-    enabled: recipientQuery.trim().length > 0 && !recipient,
+    queryKey: ["userSearch", debouncedQuery],
+    queryFn: () => usersAPI.search(debouncedQuery),
+    enabled: dropdownOpen && !recipient,
     placeholderData: [],
   });
 
@@ -189,16 +195,13 @@ export default function RequestDelivery() {
   useEffect(() => {
     if (me?.room) {
       const roomStr = String(me.room);
-      const firstDigit = roomStr.charAt(0);
-      const floorMap: Record<string, string> = {
-        "1": "1st Floor",
-        "2": "2nd Floor",
-        "3": "3rd Floor",
-      };
-      const detectedFloor = floorMap[firstDigit];
 
-      if (detectedFloor && roomsByFloor[detectedFloor]?.includes(roomStr)) {
-        setPickupFloor(detectedFloor);
+      const matchedFloor = Object.entries(roomsByFloor).find(([, rooms]) =>
+        rooms.includes(roomStr)
+      )?.[0];
+
+      if (matchedFloor) {
+        setPickupFloor(matchedFloor);
         setPickupRoom(roomStr);
       }
     }
@@ -426,42 +429,38 @@ export default function RequestDelivery() {
                     />
 
                     {dropdownOpen && !recipient && (
-                      <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden max-h-56 overflow-y-auto">
-                        {searching ? (
-                          <div className="flex items-center gap-2 px-4 py-3 text-[12.5px] text-gray-400">
-                            <Loader2 className="h-4 w-4 animate-spin text-[#800000]" />
-                            Searching...
-                          </div>
-                        ) : searchResults.length > 0 ? (
-                          searchResults.map((u: any) => {
-                            const p = toUserProfile(u);
-                            return (
-                              <button
-                                key={u.id}
-                                type="button"
-                                onClick={() => handleSelectRecipient(u)}
-                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#800000]/5 transition-colors text-left"
-                              >
-                                <AvatarCircle initials={p.initials} color="#9CA3AF" size={30} />
-                                <div>
-                                  <p className="text-[13px] font-medium text-[#1A1A1A]">{p.name}</p>
-                                  <p className="text-[11px] text-gray-400">{p.room} · {p.building}</p>
-                                </div>
-                              </button>
-                            );
-                          })
-                        ) : recipientQuery.trim().length > 0 ? (
-                          <div className="flex items-center gap-2 px-4 py-3 text-[12.5px] text-gray-400">
-                            <UserX className="h-4 w-4 text-gray-300" />
-                            No user found
-                          </div>
-                        ) : (
-                          <div className="px-4 py-3 text-[12px] text-gray-400">
-                            Start typing to search...
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden max-h-56 overflow-y-auto">
+                      {searching ? (
+                        <div className="flex items-center gap-2 px-4 py-3 text-[12.5px] text-gray-400">
+                          <Loader2 className="h-4 w-4 animate-spin text-[#800000]" />
+                          Searching...
+                        </div>
+                      ) : searchResults.length > 0 ? (
+                        searchResults.map((u: any) => {
+                          const p = toUserProfile(u);
+                          return (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onClick={() => handleSelectRecipient(u)}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#800000]/5 transition-colors text-left"
+                            >
+                              <AvatarCircle initials={p.initials} color="#9CA3AF" size={30} />
+                              <div>
+                                <p className="text-[13px] font-medium text-[#1A1A1A]">{p.name}</p>
+                                <p className="text-[11px] text-gray-400">{p.room} · {p.building}</p>
+                              </div>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="flex items-center gap-2 px-4 py-3 text-[12.5px] text-gray-400">
+                          <UserX className="h-4 w-4 text-gray-300" />
+                          No user found
+                        </div>
+                      )}
+                    </div>
+                  )}
                   </div>
                 </FieldWrapper>
 

@@ -27,6 +27,7 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     ...options,
     headers,
     credentials: 'include',
+    cache: 'no-store', 
   });
 
   if (!response.ok) {
@@ -76,6 +77,7 @@ export const deliveriesAPI = {
     notes?: string;
   }) => apiCall('/deliveries/request', { method: 'POST', body: JSON.stringify(data) }),
   getMyRequests: () => apiCall('/deliveries/my-requests'),
+  getMyHistory: () => apiCall('/deliveries/my-history'),
   getMyInbox: () => apiCall('/deliveries/my-inbox'),
   getById: (id: number) => apiCall(`/deliveries/${id}`),
   confirmReceived: (deliveryId: number) => apiCall(`/deliveries/${deliveryId}/received`, { method: 'PUT', body: JSON.stringify({}) }),
@@ -94,4 +96,8 @@ export const telemetryAPI = {
 export const alertsAPI = {
   getAll: () => apiCall('/alerts'),
   getActive: () => apiCall('/alerts/active'),
+};
+
+export const trayAPI = {
+  unlock: () => apiCall(`/tray/unlock?t=${Date.now()}`),
 };

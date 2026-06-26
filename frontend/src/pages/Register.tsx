@@ -1,7 +1,7 @@
 //Register.tsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, User, AtSign, MapPin, Eye, EyeOff, Loader2, AlertCircle, Bot, CheckCircle2, KeyRound } from "lucide-react";
+import { Mail, Lock, User, AtSign, MapPin, Eye, EyeOff, Loader2, AlertCircle, Bot, CheckCircle2, KeyRound, Circle } from "lucide-react";
 import { motion } from "framer-motion";
 import { authAPI } from "../lib/api";
 import {
@@ -38,6 +38,24 @@ export default function Register() {
 
   const passwordMismatch = formData.confirmPassword.length > 0 && formData.confirmPassword !== formData.password;
 
+  const passwordChecks = {
+    length: formData.password.length >= 8,
+    uppercase: /[A-Z]/.test(formData.password),
+    lowercase: /[a-z]/.test(formData.password),
+    number: /[0-9]/.test(formData.password),
+    special: /[!@#$%^&*(),.?":{}|<>_\-+=~`[\];'/\\]/.test(formData.password),
+  };
+
+  const isPasswordStrong = Object.values(passwordChecks).every(Boolean);
+
+  const passwordRequirements = [
+    { key: "length", label: "At least 8 characters" },
+    { key: "uppercase", label: "One uppercase letter" },
+    { key: "lowercase", label: "One lowercase letter" },
+    { key: "number", label: "One number" },
+    { key: "special", label: "One special character" },
+  ] as const;
+
   const isFormValid =
     formData.registration_code.trim() &&
     formData.full_name.trim() &&
@@ -47,7 +65,8 @@ export default function Register() {
     formData.room.trim() &&
     formData.password.trim() &&
     formData.confirmPassword.trim() &&
-    !passwordMismatch;
+    !passwordMismatch &&
+    isPasswordStrong;
 
   // Room options by floor
   const roomsByFloor: { [key: string]: string[] } = {
@@ -367,6 +386,26 @@ export default function Register() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {/* Password requirements checklist */}
+              {formData.password.length > 0 && (
+                <div className="grid grid-cols-2 gap-1 mt-2 px-1">
+                  {passwordRequirements.map(({ key, label }) => {
+                    const met = passwordChecks[key];
+                    return (
+                      <div key={key} className="flex items-center gap-1.5">
+                        {met ? (
+                          <CheckCircle2 size={12} style={{ color: "#16a34a" }} className="flex-shrink-0" />
+                        ) : (
+                          <Circle size={12} className="text-gray-300 flex-shrink-0" />
+                        )}
+                        <span className={`text-[10px] transition-colors ${met ? "text-green-600 font-medium" : "text-gray-400"}`}>
+                          {label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Confirm Password */}

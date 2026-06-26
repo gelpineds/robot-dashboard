@@ -93,7 +93,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/notifications/`, {
+      const res = await fetch(`${API_BASE}/notifications/`, {
         headers: authHeaders(),
       });
       if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
@@ -121,7 +121,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     );
 
     try {
-      const res = await fetch(`${API_BASE}/api/notifications/${id}/read`, {
+      const res = await fetch(`${API_BASE}/notifications/${id}/read`, {
         method: "PATCH",
         headers: authHeaders(),
       });
@@ -142,7 +142,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     );
 
     try {
-      const res = await fetch(`${API_BASE}/api/notifications/mark-all-read`, {
+      const res = await fetch(`${API_BASE}/notifications/mark-all-read`, {
         method: "PATCH",
         headers: authHeaders(),
       });
@@ -161,7 +161,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     setNotifications((prev) => prev.filter((n) => n.id !== id));
 
     try {
-      const res = await fetch(`${API_BASE}/api/notifications/${id}`, {
+      const res = await fetch(`${API_BASE}/notifications/${id}`, {
         method: "DELETE",
         headers: authHeaders(),
       });
@@ -217,7 +217,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       if (!token) return;
 
       try {
-        const res = await fetch(`${API_BASE}/api/notifications/unread-count`, {
+        const res = await fetch(`${API_BASE}/notifications/unread-count`, {
           headers: authHeaders(),
         });
         if (!res.ok) return;

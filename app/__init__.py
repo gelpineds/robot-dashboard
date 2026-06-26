@@ -1,3 +1,4 @@
+#__init__.py
 from flask import Flask
 from app.config import Config
 from app.extensions import db, migrate, jwt, bcrypt, cors, socketio, mail
@@ -147,11 +148,12 @@ def create_app():
     def handle_error(error):
         import traceback
         import sys
+        from flask import request 
+
         error_trace = traceback.format_exc()
-        print(f"\n[Flask] Unhandled error: {str(error)}", file=sys.stderr)
+        print(f"[Flask] Unhandled error: {str(error)}", file=sys.stderr)
         print(f"[Flask] Type: {type(error).__name__}", file=sys.stderr)
-        print(f"[Flask] Traceback:\n{error_trace}", file=sys.stderr)
         sys.stderr.flush()
         return {"error": f"Internal server error: {str(error)}"}, 500
-
+    
     return app

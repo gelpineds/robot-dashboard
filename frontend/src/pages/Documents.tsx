@@ -15,8 +15,8 @@ const typeColor: Record<string, string> = {
 
 export default function Documents() {
   const { data: deliveries, isLoading, error } = useQuery({
-    queryKey: ['deliveries'],
-    queryFn: deliveriesAPI.getMyRequests,
+    queryKey: ['deliveriesHistory'],
+    queryFn: deliveriesAPI.getMyHistory,
   });
 
   if (isLoading) {
@@ -44,7 +44,11 @@ export default function Documents() {
     type: "Administrative", // Dynamic based on backend data
     pages: 1, // Placeholder
     lastSent: formatDateOnly(delivery.created_at),
-    sentBy: delivery.sender,
+    sentBy: delivery.is_sender
+      ? `Sent to ${delivery.recipient}`
+      : delivery.is_recipient
+      ? `Received from ${delivery.sender}`
+      : delivery.sender,   // fallback, shouldn't normally happen
   }));
 
   return (

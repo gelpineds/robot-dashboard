@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Delivery } from "@/lib/types";
 import { AppLayout } from "@/components/AppLayout";
 import { toast } from "@/components/ui/feedback/sonner";
-import { authAPI, deliveriesAPI } from "@/lib/api";
+import { authAPI, deliveriesAPI, trayAPI } from "@/lib/api";
 import { useTimeAgo, formatTimestampStatic } from "@/hooks/useTimeAgo";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -194,7 +194,6 @@ function SidebarRow({
             marginBottom: 1,
           }}
         >
-          {delivery.id}
         </div>
         <div
           style={{
@@ -275,7 +274,6 @@ function HistoryRow({ delivery, isSelected, onClick }: { delivery: Delivery; isS
         <div
           style={{ fontFamily: "monospace", fontSize: 10, color: C.maroon, marginBottom: 1 }}
         >
-          {delivery.id}
         </div>
         <div
           style={{
@@ -325,11 +323,13 @@ function DetailPanel({
   confirmMutation: any;
 }) {
   const [showDialog, setShowDialog] = useState(false);
-  const isArrived = delivery.status === "arrived";
-  const isPending = delivery.status === "robot_assigned" || delivery.status === "pending_request";
+  const isCompleted = delivery.status === "completed";
+  const isArrived = delivery.status === "arrived" && !isCompleted;
+  const isPending = (delivery.status === "robot_assigned" || delivery.status === "pending_request") && !isCompleted;
   const relativeTime = useTimeAgo(delivery.arrivedAt);
 
   const getStatusDisplay = () => {
+    if (isCompleted) return "Completed";
     if (delivery.status === "pending_request") return "Pending Robot Assignment";
     if (delivery.status === "robot_assigned") return "Robot Assigned";
     if (isArrived) return "Robot Delivered";
@@ -337,12 +337,14 @@ function DetailPanel({
   };
 
   const getStatusColor = () => {
+    if (isCompleted) return "#16a34a";
     if (isPending) return "#9ca3af";
     if (isArrived) return C.gold;
     return "#9ca3af";
   };
 
   const getStatusBgColor = () => {
+    if (isCompleted) return "rgba(22,163,74,0.12)";
     if (isPending) return "#f3f4f6";
     if (isArrived) return C.gold;
     return "#f3f4f6";
@@ -379,10 +381,7 @@ function DetailPanel({
           flexShrink: 0,
         }}
       >
-        <span
-          style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 500, color: C.gold }}
-        >
-          {delivery.id}
+        <span style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 500, color: C.gold }}>
         </span>
         <span
           style={{
@@ -413,6 +412,27 @@ function DetailPanel({
           gap: 12,
         }}
       >
+        {/* Completed status notice — fix #3 */}
+        {isCompleted && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 8,
+              background: "#f0fdf4",
+              border: "0.5px solid #bbf7d0",
+              borderRadius: 8,
+              padding: "10px 12px",
+            }}
+          >
+            <CheckCircle size={13} style={{ color: "#16a34a", flexShrink: 0, marginTop: 1 }} />
+            <div style={{ fontSize: 12, color: "#166534", lineHeight: 1.6 }}>
+              <p style={{ fontWeight: 600, marginBottom: 2 }}>Delivery Successful</p>
+              <p>This package has been confirmed as received. No further action is needed.</p>
+            </div>
+          </div>
+        )}
+
         {/* Pending status notice */}
         {isPending && (
           <div
@@ -429,14 +449,12 @@ function DetailPanel({
             <AlertCircle size={13} style={{ color: "#0284c7", flexShrink: 0, marginTop: 1 }} />
             <div style={{ fontSize: 12, color: "#0c4a6e", lineHeight: 1.6 }}>
               <p style={{ fontWeight: 600, marginBottom: 2 }}>Awaiting Robot Assignment</p>
-              <p>
-                This delivery request is pending. A robot will be assigned soon. You'll be notified when it arrives.
-              </p>
+              <p>This delivery request is pending. A robot will be assigned soon. You'll be notified when it arrives.</p>
             </div>
           </div>
         )}
 
-        {/* Sender block */}
+        {/* Sender block — unchanged */}
         <div
           style={{
             display: "flex",
@@ -467,9 +485,7 @@ function DetailPanel({
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontSize: 10, color: "#9ca3af", marginBottom: 2 }}>Sent by</p>
-            <p style={{ fontSize: 13, fontWeight: 500, color: "#1a1a1a" }}>
-              {delivery.sender.name}
-            </p>
+            <p style={{ fontSize: 13, fontWeight: 500, color: "#1a1a1a" }}>{delivery.sender.name}</p>
             <p style={{ fontSize: 11, color: "#6b7280" }}>
               {delivery.sender.room}, {delivery.sender.building}
             </p>
@@ -477,36 +493,16 @@ function DetailPanel({
           {delivery.arrivedAt && (
             <div style={{ textAlign: "right", flexShrink: 0 }}>
               <p style={{ fontSize: 10, color: "#9ca3af" }}>Arrived</p>
-              <p style={{ fontSize: 11, fontWeight: 500, color: "#374151" }}>
-                {relativeTime}
-              </p>
+              <p style={{ fontSize: 11, fontWeight: 500, color: "#374151" }}>{relativeTime}</p>
             </div>
           )}
         </div>
 
-        {/* Package details */}
-        <div
-          style={{ border: "0.5px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}
-        >
-          <div
-            style={{
-              background: C.maroon,
-              padding: "7px 12px",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
+        {/* Package details — unchanged */}
+        <div style={{ border: "0.5px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}>
+          <div style={{ background: C.maroon, padding: "7px 12px", display: "flex", alignItems: "center", gap: 6 }}>
             <Package size={12} style={{ color: "rgba(255,255,255,0.8)" }} />
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 600,
-                color: "#fff",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-              }}
-            >
+            <span style={{ fontSize: 10, fontWeight: 600, color: "#fff", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               Package Details
             </span>
           </div>
@@ -530,25 +526,14 @@ function DetailPanel({
             </div>
           ))}
           {delivery.senderNote && (
-            <div
-              style={{
-                padding: "7px 12px",
-                fontSize: 12,
-                borderTop: "0.5px solid #f3f4f6",
-                background: "#fafafa",
-              }}
-            >
-              <span style={{ color: "#9ca3af", display: "block", marginBottom: 2 }}>
-                Sender note
-              </span>
-              <span style={{ color: "#4b5563", fontStyle: "italic" }}>
-                &ldquo;{delivery.senderNote}&rdquo;
-              </span>
+            <div style={{ padding: "7px 12px", fontSize: 12, borderTop: "0.5px solid #f3f4f6", background: "#fafafa" }}>
+              <span style={{ color: "#9ca3af", display: "block", marginBottom: 2 }}>Sender note</span>
+              <span style={{ color: "#4b5563", fontStyle: "italic" }}>&ldquo;{delivery.senderNote}&rdquo;</span>
             </div>
           )}
         </div>
 
-        {/* Documents notice — only show for arrived deliveries */}
+        {/* Documents notice — only for arrived (not yet confirmed) deliveries */}
         {isArrived && (
           <div
             style={{
@@ -564,24 +549,15 @@ function DetailPanel({
             <FileText size={13} style={{ color: "#d97706", flexShrink: 0, marginTop: 1 }} />
             <div style={{ fontSize: 12, color: "#92400e", lineHeight: 1.6 }}>
               <p style={{ fontWeight: 600, marginBottom: 2 }}>Check your delivery documents</p>
-              <p>
-                Please check the physical delivery documents received with this package before
-                confirming.
-              </p>
+              <p>Please check the physical delivery documents received with this package before confirming.</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Confirm button — sticky footer — show for all active statuses */}
-      {(isArrived || isPending) && (
-        <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "0.5px solid #e5e7eb",
-            flexShrink: 0,
-          }}
-        >
+      {/* Confirm button — fix #1: explicitly excluded for completed */}
+      {(isArrived || isPending) && delivery.status !== "completed" && (
+        <div style={{ padding: "12px 20px", borderTop: "0.5px solid #e5e7eb", flexShrink: 0 }}>
           <button
             onClick={() => setShowDialog(true)}
             disabled={confirmMutation.isPending}
@@ -744,28 +720,31 @@ export default function DeliveryInbox() {
   // Confirm receipt mutation
   const confirmMutation = useMutation({
     mutationFn: async (deliveryId: number) => {
-        // 1. Hardware Trigger (Do this first so the user gets instant feedback)
-        try {
-            await fetch(`http://localhost:5000/api/tray/unlock?t=${Date.now()}`);
-        } catch (e) {
-            console.error("Hardware signal failed");
-        }
+      // 1. Hardware trigger — must succeed before we touch the database
+      let unlockResult;
+      try {
+        unlockResult = await trayAPI.unlock();
+      } catch (e) {
+        throw new Error("Could not reach tray hardware. Check the ESP32's WiFi connection and try again.");
+      }
 
-        // 2. Database Update
-        return await deliveriesAPI.confirmReceived(deliveryId);
+      if (unlockResult?.status !== "success") {
+        throw new Error(unlockResult?.message || "Hardware rejected the unlock command.");
+      }
+
+      // 2. Only mark as received if the lock actually fired
+      return await deliveriesAPI.confirmReceived(deliveryId);
     },
     onSuccess: () => {
-        toast.success("Receipt confirmed!");
-        
-        // THIS IS THE FIX: Invalidate the inbox and history so React fetches FRESH data
-        queryClient.invalidateQueries({ queryKey: ["myInbox"] });
-        
-        setSelected(null);
+      toast.success("Receipt confirmed! Tray unlocked.");
+      queryClient.invalidateQueries({ queryKey: ["myInbox"] });
+      setSelectedId(null);
     },
+
     onError: (error: any) => {
-        toast.error("Failed to confirm receipt");
+      toast.error(error.message || "Failed to confirm receipt");
     },
-});
+  });
 
   // Filter deliveries: inbox = status "pending_request", "robot_assigned" or "arrived", history = completed or cancelled
   const arrivedDeliveries = useMemo(() => (allDeliveries as any[])
@@ -855,15 +834,25 @@ export default function DeliveryInbox() {
     })), [allDeliveries, currentUser]);
 
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<Delivery | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const selected = useMemo(() => {
+    if (!selectedId) return null;
+    return (
+      arrivedDeliveries.find((d) => d.id === selectedId) ??
+      historyDeliveries.find((d) => d.id === selectedId) ??
+      null
+    );
+  }, [selectedId, arrivedDeliveries, historyDeliveries]);
+
   const [activeTab, setActiveTab] = useState<"inbox" | "history">("inbox");
 
   // Auto-select first on mount
   useEffect(() => {
-    if (arrivedDeliveries.length > 0 && !selected) {
-      setSelected(arrivedDeliveries[0]);
+    if (arrivedDeliveries.length > 0 && !selectedId) {
+      setSelectedId(arrivedDeliveries[0].id);
     }
-  }, [arrivedDeliveries, selected]);
+  }, [arrivedDeliveries, selectedId]);
 
   const filteredDeliveries = arrivedDeliveries.filter(
     (d) =>
@@ -941,6 +930,7 @@ export default function DeliveryInbox() {
 
   const recipientName = currentUser?.full_name || "User";
   const recipientRoom = currentUser?.room || "Unknown Location";
+  
 
   return (
     <AppLayout title="Delivery Inbox">
@@ -1120,7 +1110,7 @@ export default function DeliveryInbox() {
                           key={d.id}
                           delivery={d}
                           isSelected={selected?.id === d.id}
-                          onClick={() => setSelected(d)}
+                          onClick={() => setSelectedId(d.id)}
                         />
                       ))}
                     </div>
@@ -1138,7 +1128,7 @@ export default function DeliveryInbox() {
                 No past deliveries yet.
               </div>
             ) : (
-              historyDeliveries.map((d) => <HistoryRow key={d.id} delivery={d} isSelected={selected?.id === d.id} onClick={() => setSelected(d)} />)
+              historyDeliveries.map((d) => <HistoryRow key={d.id} delivery={d} isSelected={selected?.id === d.id} onClick={() => setSelectedId(d.id)} />)
             )}
           </div>
 
