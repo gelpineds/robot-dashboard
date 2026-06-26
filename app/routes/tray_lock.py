@@ -8,11 +8,11 @@ delivery_bp = Blueprint('delivery', __name__)
 # The IP address of your ESP32 on the network
 ESP32_IP = "http://192.168.100.121" 
 
-@delivery_bp.route('/api/unlock-tray', methods=['POST'])
+@delivery_bp.route('/unlock', methods=['GET'])
 def unlock_tray():
     try:
         # Secretly visit the ESP32's /L URL to trigger the relay
-        response = requests.get(f"{ESP32_IP}/L", timeout=3)
+        response = requests.get(f"{ESP32_IP}/L", timeout=3, headers={"Connection": "close"})
         
         if response.status_code == 200:
             return jsonify({"status": "success", "message": "Compartment unlocked!"}), 200

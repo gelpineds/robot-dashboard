@@ -147,6 +147,7 @@ def get_my_inbox():
             "completed_at": d.received_at.isoformat() if d.received_at else None,
             "created_at": d.created_at.isoformat(),
             "updated_at": d.updated_at.isoformat() if d.updated_at else None,
+            "status": d.status
         }
         for d in deliveries
     ], 200

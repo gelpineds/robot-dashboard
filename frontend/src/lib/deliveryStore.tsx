@@ -23,6 +23,7 @@ function statusLabel(status: DeliveryStatus): string {
     arrived:        'Robot arrived at destination',
     completed:      'Delivery confirmed by recipient',
     cancelled:      'Delivery cancelled',
+    pending_request: 'Pending request',
   }
   return labels[status]
 }

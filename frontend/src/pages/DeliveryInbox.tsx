@@ -6,6 +6,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { toast } from "@/components/ui/feedback/sonner";
 import { authAPI, deliveriesAPI } from "@/lib/api";
 import { useTimeAgo, formatTimestampStatic } from "@/hooks/useTimeAgo";
+import { useQueryClient } from "@tanstack/react-query";
 
 // ─── Brand colors ─────────────────────────────────────────────────────────────
 const C = {
@@ -736,20 +737,35 @@ export default function DeliveryInbox() {
     queryKey: ["myInbox"],
     queryFn: () => deliveriesAPI.getMyInbox(),
     enabled: !!currentUser,
+    refetchInterval: 5000,   
   });
 
+  const queryClient = useQueryClient();
   // Confirm receipt mutation
   const confirmMutation = useMutation({
-    mutationFn: (deliveryId: number) => deliveriesAPI.confirmReceived(deliveryId),
+    mutationFn: async (deliveryId: number) => {
+        // 1. Hardware Trigger (Do this first so the user gets instant feedback)
+        try {
+            await fetch(`http://localhost:5000/api/tray/unlock?t=${Date.now()}`);
+        } catch (e) {
+            console.error("Hardware signal failed");
+        }
+
+        // 2. Database Update
+        return await deliveriesAPI.confirmReceived(deliveryId);
+    },
     onSuccess: () => {
-      toast.success("Receipt confirmed! Transaction complete.");
-      refetchDeliveries();
-      setSelected(null);
+        toast.success("Receipt confirmed!");
+        
+        // THIS IS THE FIX: Invalidate the inbox and history so React fetches FRESH data
+        queryClient.invalidateQueries({ queryKey: ["myInbox"] });
+        
+        setSelected(null);
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to confirm receipt");
+        toast.error("Failed to confirm receipt");
     },
-  });
+});
 
   // Filter deliveries: inbox = status "pending_request", "robot_assigned" or "arrived", history = completed or cancelled
   const arrivedDeliveries = useMemo(() => (allDeliveries as any[])
