@@ -1,10 +1,12 @@
 #__init__.py
+import socket
 from flask import Flask
 from app.config import Config
 from app.extensions import db, migrate, jwt, bcrypt, cors, socketio, mail
 
 
 def create_app():
+    
     app = Flask(__name__)
     app.config.from_object(Config)
     app.config['JSON_SORT_KEYS'] = False
@@ -29,8 +31,18 @@ def create_app():
             if p:
                 extra_origins.append(p)
 
-    # include common LAN/dev IPs on common frontend ports so devices on the LAN can connect
-    common_ips = ["127.0.0.1", "0.0.0.0", "172.20.10.2", "26.114.248.191"]
+# ─── AUTOMATICALLY DETECT CURRENT LOCAL NETWORK IP ───
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80)) # Pings a public DNS server to find our network adapter's current IP
+        current_lan_ip = s.getsockname()[0]
+        s.close()
+        print(f"[App] Automatically detected system network IP: {current_lan_ip}")
+    except Exception:
+        current_lan_ip = "127.0.0.1"
+
+    # Add the dynamically detected IP to your list so it's always allowed!
+    common_ips = ["127.0.0.1", "0.0.0.0", "172.20.10.2", "26.114.248.191", "192.168.75.88", current_lan_ip]
     common_ports = ["8080", "8081", "8000", "3000", "5173"]
     common_lan = []
     for scheme in ("http", "https"):

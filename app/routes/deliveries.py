@@ -7,6 +7,7 @@ from app.extensions import db
 from app.models.delivery import Delivery
 from app.models.user import User
 from app.utils.notifications import create_notification
+import requests
 
 deliveries_bp = Blueprint("deliveries", __name__)
 
@@ -216,7 +217,7 @@ def get_delivery(delivery_id):
         "updated_at": delivery.updated_at.isoformat() if delivery.updated_at else None,
     }, 200
 
-
+#routes/deliveries.py
 @deliveries_bp.put("/<int:delivery_id>/received")
 @jwt_required()
 def confirm_received(delivery_id):
@@ -239,6 +240,7 @@ def confirm_received(delivery_id):
             }
         }, 200
 
+    # 1. Update the Database
     delivery.status = "completed"
     delivery.received_confirmed = True
     delivery.received_by_user_id = user_id
@@ -246,7 +248,7 @@ def confirm_received(delivery_id):
 
     db.session.commit()
 
-    # Notify the requester (sender side) that the recipient confirmed receipt
+    # 2. Notify the requester (sender side)
     create_notification(
         user_id=delivery.requested_by_user_id,
         type='delivery_completed',
@@ -259,8 +261,32 @@ def confirm_received(delivery_id):
         is_action_required=False
     )
 
+    # =================================================================
+    # 3. HARDWARE TRIGGER: Tell the ESP32 to unlock the tray!
+    # =================================================================
+    ESP32_IP = "http://192.168.100.121" 
+    hardware_status = "Skipped"
+
+    try:
+        # Secretly visit the ESP32's /L URL to trigger the relay
+        response = requests.get(f"{ESP32_IP}/L", timeout=3.0, headers={"Connection": "close"})
+        
+        if response.status_code == 200:
+            print("[Flask] TARS Unlock Successful!")
+            hardware_status = "Unlocked"
+        else:
+            print("[Flask] TARS hardware rejected the command.")
+            hardware_status = "Error"
+            
+    except requests.exceptions.RequestException:
+        # Triggers if the robot is off or disconnected from Wi-Fi
+        print("[Flask] WARNING: Could not reach TARS hardware.")
+        hardware_status = "Offline"
+    # =================================================================
+
     return {
         "message": "Delivery marked as received successfully",
+        "hardware_status": hardware_status,
         "delivery": {
             "id": delivery.id,
             "status": delivery.status,
@@ -268,7 +294,6 @@ def confirm_received(delivery_id):
             "received_at": delivery.received_at.isoformat()
         }
     }, 200
-
 
 @deliveries_bp.get("/admin/all")
 @jwt_required()
