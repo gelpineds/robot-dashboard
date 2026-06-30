@@ -264,7 +264,7 @@ def confirm_received(delivery_id):
     # =================================================================
     # 3. HARDWARE TRIGGER: Tell the ESP32 to unlock the tray!
     # =================================================================
-    ESP32_IP = "http://192.168.100.121" 
+    ESP32_IP = "http://192.168.75.218"
     hardware_status = "Skipped"
 
     try:

@@ -6,7 +6,7 @@ import requests
 delivery_bp = Blueprint('delivery', __name__)
 
 # The IP address of your ESP32 on the network
-ESP32_IP = "http://192.168.100.121" 
+ESP32_IP = "http://192.168.75.218"
 
 @delivery_bp.route('/unlock', methods=['GET'])
 def unlock_tray():
