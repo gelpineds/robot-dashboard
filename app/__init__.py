@@ -1,5 +1,8 @@
 #__init__.py
 import socket
+import threading    
+import time
+import os
 from flask import Flask
 from app.config import Config
 from app.extensions import db, migrate, jwt, bcrypt, cors, socketio, mail
@@ -11,6 +14,7 @@ def create_app():
     app.config.from_object(Config)
     app.config['JSON_SORT_KEYS'] = False
     app.url_map.strict_slashes = False
+    app.config['ACTIVE_ROBOT_IPS'] = {"TARS": "http://tars.local"}
 
     # Initialize CORS FIRST before registering routes
     # Build allowed origins from defaults plus any FRONTEND_URL(s) provided in env
@@ -85,7 +89,6 @@ def create_app():
     from app.routes.alerts import alerts_bp
     from app.routes.users import users_bp
     from app.routes.notifications import notifications_bp
-    from app.routes.tray_lock import delivery_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(users_bp, url_prefix="/api/users")
@@ -94,7 +97,6 @@ def create_app():
     app.register_blueprint(telemetry_bp, url_prefix="/api/telemetry")
     app.register_blueprint(alerts_bp, url_prefix="/api/alerts")
     app.register_blueprint(notifications_bp, url_prefix="/api/notifications")
-    app.register_blueprint(delivery_bp, url_prefix="/api/tray")
 
     # Initialize Flask-Admin BEFORE SocketIO
     from app.admin import init_admin
@@ -167,5 +169,33 @@ def create_app():
         print(f"[Flask] Type: {type(error).__name__}", file=sys.stderr)
         sys.stderr.flush()
         return {"error": f"Internal server error: {str(error)}"}, 500
+    
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
+        def listen_loop():
+            port = 5005
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.bind(("0.0.0.0", port))
+            print(f"[UDP Listener] Background service online on port {port}...")
+
+            while True:
+                try:
+                    data, addr = sock.recvfrom(1024)
+                    message = data.decode('utf-8').strip()
+
+                    # When Flask hears the ESP32's shout:
+                    if message == "TARS_ROBOT_ONLINE":
+                        robot_ip = addr[0] # Automatically extract the dynamic IP
+                        
+                        # Update the global config if the IP has changed
+                        current_saved_ip = app.config['ACTIVE_ROBOT_IPS'].get("TARS")
+                        if current_saved_ip != f"http://{robot_ip}":
+                            app.config['ACTIVE_ROBOT_IPS']["TARS"] = f"http://{robot_ip}"
+                            print(f"[UDP Listener] Discovered TARS at new dynamic IP: {robot_ip}")
+
+                except Exception as e:
+                    time.sleep(1)
+
+        discovery_thread = threading.Thread(target=listen_loop, daemon=True)
+        discovery_thread.start()
     
     return app

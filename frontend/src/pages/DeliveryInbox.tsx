@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Delivery } from "@/lib/types";
 import { AppLayout } from "@/components/AppLayout";
 import { toast } from "@/components/ui/feedback/sonner";
-import { authAPI, deliveriesAPI, trayAPI } from "@/lib/api";
+import { authAPI, deliveriesAPI} from "@/lib/api";
 import { useTimeAgo, formatTimestampStatic } from "@/hooks/useTimeAgo";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -719,32 +719,16 @@ export default function DeliveryInbox() {
   const queryClient = useQueryClient();
   // Confirm receipt mutation
   const confirmMutation = useMutation({
-    mutationFn: async (deliveryId: number) => {
-      // 1. Hardware trigger — must succeed before we touch the database
-      let unlockResult;
-      try {
-        unlockResult = await trayAPI.unlock();
-      } catch (e) {
-        throw new Error("Could not reach tray hardware. Check the ESP32's WiFi connection and try again.");
-      }
-
-      if (unlockResult?.status !== "success") {
-        throw new Error(unlockResult?.message || "Hardware rejected the unlock command.");
-      }
-
-      // 2. Only mark as received if the lock actually fired
-      return await deliveriesAPI.confirmReceived(deliveryId);
-    },
-    onSuccess: () => {
-      toast.success("Receipt confirmed! Tray unlocked.");
-      queryClient.invalidateQueries({ queryKey: ["myInbox"] });
-      setSelectedId(null);
-    },
-
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to confirm receipt");
-    },
-  });
+  mutationFn: (deliveryId: number) => deliveriesAPI.confirmReceived(deliveryId),
+  onSuccess: () => {
+    toast.success("Receipt confirmed! Tray unlocked.");
+    queryClient.invalidateQueries({ queryKey: ["myInbox"] });
+    setSelectedId(null);
+  },
+  onError: (error: any) => {
+    toast.error(error.message || "Failed to confirm receipt");
+  },
+});
 
   // Filter deliveries: inbox = status "pending_request", "robot_assigned" or "arrived", history = completed or cancelled
   const arrivedDeliveries = useMemo(() => (allDeliveries as any[])

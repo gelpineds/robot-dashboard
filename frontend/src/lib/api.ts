@@ -97,7 +97,3 @@ export const alertsAPI = {
   getAll: () => apiCall('/alerts'),
   getActive: () => apiCall('/alerts/active'),
 };
-
-export const trayAPI = {
-  unlock: () => apiCall(`/tray/unlock?t=${Date.now()}`),
-};

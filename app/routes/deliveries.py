@@ -1,6 +1,6 @@
 #routes/deliveries.py
 from datetime import datetime
-from flask import Blueprint, request
+from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from sqlalchemy import or_
 from app.extensions import db
@@ -222,14 +222,11 @@ def get_delivery(delivery_id):
 @jwt_required()
 def confirm_received(delivery_id):
     user_id = int(get_jwt_identity())
-    claims = get_jwt()
-
     delivery = Delivery.query.get_or_404(delivery_id)
 
     if delivery.recipient_user_id != user_id:
         return {"error": "You are not allowed to confirm this delivery"}, 403
 
-    # Allow confirming all delivery statuses for testing purposes
     if delivery.status == "completed":
         return {
             "message": "Delivery was already marked as received",
@@ -240,15 +237,29 @@ def confirm_received(delivery_id):
             }
         }, 200
 
-    # 1. Update the Database
+    # 1. HARDWARE TRIGGER FIRST — don't touch the database until this succeeds
+    robot_url = current_app.config.get('ACTIVE_ROBOT_IPS', {}).get("TARS", "http://tars.local")
+
+    try:
+        print(f"[Flask] Attempting to unlock TARS at {robot_url}/L...")
+        response = requests.get(f"{robot_url}/L", timeout=3.0, headers={"Connection": "close"})
+        if response.status_code != 200:
+            print("[Flask] TARS hardware rejected the command.")
+            return {"error": "Tray hardware rejected the unlock command. Please try again."}, 502
+    except requests.exceptions.RequestException:
+        print("[Flask] WARNING: Could not reach TARS hardware.")
+        return {"error": "Could not reach tray hardware. Check the robot's WiFi connection and try again."}, 503
+
+    print("[Flask] TARS Unlock Successful!")
+
+    # 2. Only update the database once the lock has actually fired
     delivery.status = "completed"
     delivery.received_confirmed = True
     delivery.received_by_user_id = user_id
     delivery.received_at = datetime.utcnow()
-
     db.session.commit()
 
-    # 2. Notify the requester (sender side)
+    # 3. Notify the requester
     create_notification(
         user_id=delivery.requested_by_user_id,
         type='delivery_completed',
@@ -261,32 +272,9 @@ def confirm_received(delivery_id):
         is_action_required=False
     )
 
-    # =================================================================
-    # 3. HARDWARE TRIGGER: Tell the ESP32 to unlock the tray!
-    # =================================================================
-    ESP32_IP = "http://192.168.75.218"
-    hardware_status = "Skipped"
-
-    try:
-        # Secretly visit the ESP32's /L URL to trigger the relay
-        response = requests.get(f"{ESP32_IP}/L", timeout=3.0, headers={"Connection": "close"})
-        
-        if response.status_code == 200:
-            print("[Flask] TARS Unlock Successful!")
-            hardware_status = "Unlocked"
-        else:
-            print("[Flask] TARS hardware rejected the command.")
-            hardware_status = "Error"
-            
-    except requests.exceptions.RequestException:
-        # Triggers if the robot is off or disconnected from Wi-Fi
-        print("[Flask] WARNING: Could not reach TARS hardware.")
-        hardware_status = "Offline"
-    # =================================================================
-
     return {
         "message": "Delivery marked as received successfully",
-        "hardware_status": hardware_status,
+        "hardware_status": "Unlocked",
         "delivery": {
             "id": delivery.id,
             "status": delivery.status,
